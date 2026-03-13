@@ -1,0 +1,329 @@
+3d prototyping section
+a c toh think tank 25
+a c toh tt 25
+academic media studio
+albert einstein meeting room
+albert hong lecture theatre 1
+albert hong lt 1
+alexander graham bell meeting room
+alumni office and lounge
+arm 6
+assembly space
+auditorium
+augmented human design laboratory
+babbage meeting room
+beats laboratory
+behavioural design laboratory 1
+behavioural design laboratory 2
+behavioural design laboratory 3
+buckminster fuller collaboration space
+capstone conference room 1
+capstone conference room 2
+capstone room 1
+capstone room 10
+capstone room 2
+capstone room 3
+capstone room 4
+capstone room 5
+capstone room 6
+capstone room 7
+capstone room 8
+capstone room 9
+career development centre
+cc 1
+cc 11
+cc 12
+cc 13
+cc 14
+cc 15
+cc 16
+cc 2
+cc 3
+cc 4
+cc 5
+cc 6
+cc 7
+cc 8
+cc 9
+cdc
+characterisation laboratory
+chemical analytical design laboratory
+chemical synthesis laboratory
+chemistry–biology learning laboratory
+clean room
+cognition laboratory
+cohort classroom 1
+cohort classroom 11
+cohort classroom 12
+cohort classroom 13
+cohort classroom 14
+cohort classroom 15
+cohort classroom 16
+cohort classroom 2
+cohort classroom 3
+cohort classroom 4
+cohort classroom 5
+cohort classroom 6
+cohort classroom 7
+cohort classroom 8
+cohort classroom 9
+composite design laboratory
+composite fabrication laboratory
+composite section
+computer laboratory
+cyber5g testbed
+dares laboratory
+data analytics laboratory
+design and research in extreme systems laboratory
+digital gastronomy laboratory
+digital manufacturing and design centre
+digital manufacturing and design research studio
+digital systems laboratory
+dmand centre
+dmand research studio
+ds laboratory
+dyson–singapore university of technology and design innovation studio 1
+dyson–singapore university of technology and design innovation studio 2
+dyson–singapore university of technology and design innovation studio 3
+dyson–sutd innovation studio 1
+dyson–sutd innovation studio 2
+dyson–sutd innovation studio 3
+electrical device characterisation design laboratory
+electronic design laboratory
+electronic laboratory
+engineering systems and design research laboratory 1
+esd research laboratory 1
+fabrication laboratory
+fabrication laboratory satellite 1
+fabrication laboratory satellite 2
+fabrication laboratory satellite 3
+fabrication laboratory satellite 4
+fabrication laboratory satellite 5
+facilities management office
+faculty office
+faculty office of architecture and sustainable design
+faculty office of asd
+faculty office of engineering product development
+faculty office of engineering systems and design
+faculty office of epd
+faculty office of esd
+faculty office of information systems technology and design
+faculty office of istd
+fcc
+fire command centre
+fm office
+furnace laboratory
+george washington carver meeting room
+graduate studies centre 1
+graduate studies centre 2
+graduate studies centre 3
+graduate studies centre 4
+graduate studies centre 5
+graduate studies centre 6
+group room
+gsc 1
+gsc 2
+gsc 3
+gsc 4
+gsc 5
+gsc 6
+hass
+hokkien foundation lecture theatre 4
+hokkien foundation lt 4
+humanities, arts, and social sciences
+ider studio
+idia laboratory
+industrial design studio
+information technology care
+innovation and enterprise room
+innovative digital arts laboratory
+integrated materials and devices laboratory
+it care
+itrust centre for research in cybersecurity
+james watt meeting room
+laser cutting section
+learning environment for experimental technology laboratory
+lecture theatre 2
+lecture theatre 3
+lecture theatre 5
+lee kuan yew centre for innovative cities
+leet laboratory
+library
+lky centre for innovative cities
+lkycic
+logistics centre
+lt 2
+lt 3
+lt 5
+machining section
+madame curie meeting room
+magnetic and mechanical materials characterisation design laboratory
+makerspace 1
+makerspace 2
+materials characterisation laboratory
+mini think tank 1
+mini think tank 11
+mini think tank 13
+mini think tank 15
+mini think tank 2
+mini think tank 3
+mini think tank 4
+mini think tank 5
+mini think tank 6
+mini think tank 7
+mini think tank 8
+mini think tank 9
+mini tt 1
+mini tt 11
+mini tt 13
+mini tt 15
+mini tt 2
+mini tt 3
+mini tt 4
+mini tt 5
+mini tt 6
+mini tt 7
+mini tt 8
+mini tt 9
+multimedia room 1
+multimedia room 2
+multipurpose room
+nash living laboratory
+nikola tesla meeting room
+o laboratory
+o-lab
+office of admissions
+office of advancement and development
+office of campus infrastructure and facilities
+office of chairman
+office of deputy president
+office of education and innovation
+office of finance and corporate services
+office of human resources and organisation development
+office of information technology
+office of internal audit
+office of international relations
+office of investment
+office of it
+office of marketing and communications
+office of president
+office of provost
+office of research
+office of strategic planning
+office of student administration
+opportunity laboratory
+optics design laboratory
+painting preparation centre
+photo and video laboratory
+physics laboratory
+power system and electronics laboratory
+robotics innovation laboratory
+sac
+security control room
+sheet metal section
+singapore university of technology and design–singapore management university collaboration office
+singapore university of technology and design–smu collaboration office
+singapore university of technology and design–zhejiang university collaboration office
+singapore university of technology and design–zju collaboration office
+sparks staff lounge a
+sparks staff lounge b
+student activity centre
+studio 1
+studio 2
+studio 3
+studio 4
+studio 5
+studio 6
+sutd–singapore management university collaboration office
+sutd–smu collaboration office
+sutd–zhejiang university collaboration office
+sutd–zju collaboration office
+systems design studio
+technology office
+temasek laboratories @ singapore university of technology and design
+temasek laboratories @ sutd
+temasek laboratories and itrust laboratory 1
+temasek laboratories and itrust laboratory 2
+temasek laboratories and itrust laboratory 3
+temasek laboratories and itrust laboratory 4
+temasek laboratories and itrust laboratory 5
+temasek laboratories and itrust laboratory 6
+temasek laboratories and itrust laboratory 7
+temasek laboratories and itrust laboratory 8
+temasek laboratories and itrust laboratory 9
+temasek laboratories at singapore university of technology and design
+temasek laboratories at sutd
+the writing centre
+thin film characterisation design laboratory
+think tank 1
+think tank 10
+think tank 11
+think tank 12
+think tank 13
+think tank 14
+think tank 15
+think tank 16
+think tank 17
+think tank 18
+think tank 19
+think tank 2
+think tank 20
+think tank 21
+think tank 22
+think tank 23
+think tank 24
+think tank 26
+think tank 3
+think tank 4
+think tank 5
+think tank 6
+think tank 7
+think tank 8
+think tank 9
+thomas edison meeting room
+three-dimensional prototyping section
+tl @ singapore university of technology and design
+tl @ sutd
+tl and itrust laboratory 1
+tl and itrust laboratory 2
+tl and itrust laboratory 3
+tl and itrust laboratory 4
+tl and itrust laboratory 5
+tl and itrust laboratory 6
+tl and itrust laboratory 7
+tl and itrust laboratory 8
+tl and itrust laboratory 9
+tl at singapore university of technology and design
+tl at sutd
+training room
+tt 1
+tt 10
+tt 11
+tt 12
+tt 13
+tt 14
+tt 15
+tt 16
+tt 17
+tt 18
+tt 19
+tt 2
+tt 20
+tt 21
+tt 22
+tt 23
+tt 24
+tt 26
+tt 3
+tt 4
+tt 5
+tt 6
+tt 7
+tt 8
+tt 9
+urban cluster
+waiting room
+well-being services room
+wood store
+woodwork section
+wright brothers meeting room

@@ -15,10 +15,13 @@ graph LR
 3. Augment.
 
 ### Pre-training
-Contains rows of SUTD room names concatenated with rows of SUTD room addresses.
+- `names.txt`: Rows of names.
+- `addresses.txt`: Rows of addresses.
 
 ### Fine-tuning
-Contains rows of `X<Y>`, where `X` is a SUTD room name or address, and `<` is a beginning-of-sequence (BOS) token, and `Y` is a SUTD room address or name, and `>` is an end-of-sequence (EOS) token.
+Let `<` be a beginning-of-sequence (BOS) token, and `>` be an end-of-sequence (EOS) token.
+- `n2a.txt`: Rows of `n<A>`, where `n` is a name, and `A` is a list of addresses.
+- `a2n.txt`: Rows of `a<N>`, where `a` is an address, and `N` is a list of names.
 
 ## Architecture
 Transformer.

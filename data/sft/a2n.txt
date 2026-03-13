@@ -1,0 +1,229 @@
+1.101<library>
+1.102<albert hong lecture theatre 1>
+1.201<library>
+1.201-02<multimedia room 1>
+1.201-03<multimedia room 2>
+1.202<faculty office>
+1.203<lecture theatre 2>
+1.301<library>
+1.302<faculty office of engineering product development>
+1.304<graduate studies centre 1>
+1.308<think tank 1>
+1.309<think tank 2>
+1.310<think tank 3>
+1.312<think tank 4>
+1.313<think tank 5>
+1.314-01<mini think tank 1>
+1.314A<cohort classroom 1>
+1.314B<cohort classroom 1>
+1.315-01<mini think tank 2>
+1.315A<cohort classroom 2>
+1.315B<cohort classroom 2>
+1.318<lecture theatre 2>
+1.402<humanities, arts, and social sciences>
+1.404A<sparks staff lounge a>
+1.404B<sparks staff lounge b>
+1.407<capstone conference room 1>
+1.408<think tank 6>
+1.409<think tank 7>
+1.410<think tank 8>
+1.411<capstone room 2>
+1.412<capstone room 1>
+1.413-01<mini think tank 3>
+1.413A<cohort classroom 3>
+1.413B<cohort classroom 3>
+1.414-01<mini think tank 4>
+1.414A<cohort classroom 4>
+1.414B<cohort classroom 4>
+1.415<think tank 9>
+1.416<think tank 10>
+1.502<faculty office of information systems technology and design>
+1.503<think tank 11>
+1.504<industrial design studio>
+1.505<fabrication laboratory satellite 1>
+1.506<think tank 12>
+1.508<think tank 13>
+1.509<think tank 14>
+1.510<think tank 15>
+1.511<capstone room 3>
+1.512<capstone room 4>
+1.513-01<mini think tank 5>
+1.513A<cohort classroom 5>
+1.513B<cohort classroom 5>
+1.514-01<mini think tank 6>
+1.514A<cohort classroom 6>
+1.514B<cohort classroom 6>
+1.515<capstone conference room 2>
+1.517<well-being services room>
+1.518<group room>
+1.519<photo and video laboratory>
+1.520<multipurpose room>
+1.521<studio 1>
+1.602<faculty office of architecture and sustainable design>
+1.605<cyber5g testbed>
+1.606<capstone room 5>
+1.607<capstone room 6>
+1.608-01<mini think tank 7>
+1.608A<cohort classroom 7>
+1.608B<cohort classroom 7>
+1.609-01<mini think tank 8>
+1.609A<cohort classroom 8>
+1.609B<cohort classroom 8>
+1.610<data analytics laboratory>
+1.611<computer laboratory>
+1.612<learning environment for experimental technology laboratory>
+1.614<singapore university of technology and design–singapore management university collaboration office>
+1.615<systems design studio>
+1.617<studio 2>
+1.702<faculty office of engineering systems and design>
+1.703<robotics innovation laboratory>
+1.704<robotics innovation laboratory>
+1.706<digital manufacturing and design centre>
+1.707<digital manufacturing and design research studio>
+1.708<digital manufacturing and design research studio>
+1.709<graduate studies centre 2>
+1.710<graduate studies centre 3>
+1.712<arm 6>
+1.713<power system and electronics laboratory>
+1.714<graduate studies centre 4>
+1.715<engineering systems and design research laboratory 1>
+2.101<auditorium>
+2.103<waiting room>
+2.201<think tank 16>
+2.202<think tank 17>
+2.203<think tank 18>
+2.204<information technology care>
+2.205<office of information technology>
+2.207<clean room>
+2.302<auditorium>
+2.303<fabrication laboratory satellite 2>
+2.304<think tank 19>
+2.305<think tank 20>
+2.307-01<mini think tank 9>
+2.307A<cohort classroom 9>
+2.307B<cohort classroom 9>
+2.310<think tank 21>
+2.311<think tank 22>
+2.313A<dyson–singapore university of technology and design innovation studio 1>
+2.313B<dyson–singapore university of technology and design innovation studio 2>
+2.314<dyson–singapore university of technology and design innovation studio 3>
+2.315<graduate studies centre 5>
+2.402<fabrication laboratory satellite 3>
+2.403<lecture theatre 3>
+2.404<hokkien foundation lecture theatre 4>
+2.405-01<mini think tank 11>
+2.405A<cohort classroom 11>
+2.405B<cohort classroom 11>
+2.406A<cohort classroom 12>
+2.406B<cohort classroom 12>
+2.408<capstone room 7>
+2.409<capstone room 8>
+2.411<physics laboratory>
+2.412<digital systems laboratory>
+2.413<think tank 23>
+2.414<the writing centre>
+2.415<opportunity laboratory>
+2.501<office of campus infrastructure and facilities>
+2.502<fabrication laboratory satellite 4>
+2.503<think tank 24>
+2.504<a c toh think tank 25>
+2.505<lecture theatre 5>
+2.506-01<mini think tank 13>
+2.506A<cohort classroom 13>
+2.506B<cohort classroom 13>
+2.507A<cohort classroom 14>
+2.507B<cohort classroom 14>
+2.509<capstone room 9>
+2.510<capstone room 10>
+2.512<chemistry–biology learning laboratory>
+2.513<chemistry–biology learning laboratory>
+2.514<think tank 26>
+2.515<electronic design laboratory>
+2.518<studio 3>
+2.519<studio 4>
+2.601<urban cluster>
+2.602<fabrication laboratory satellite 5>
+2.605<innovative digital arts laboratory>
+2.606-01<mini think tank 15>
+2.606A<cohort classroom 15>
+2.606B<cohort classroom 15>
+2.607A<cohort classroom 16>
+2.607B<cohort classroom 16>
+2.610<cognition laboratory>
+2.611<nash living laboratory>
+2.615<characterisation laboratory>
+2.619<studio 5>
+2.620<studio 6>
+2.701<itrust centre for research in cybersecurity, temasek laboratories at singapore university of technology and design>
+2.702<temasek laboratories and itrust laboratory 1>
+2.703<temasek laboratories and itrust laboratory 2>
+2.704<temasek laboratories and itrust laboratory 3>
+2.705<temasek laboratories and itrust laboratory 4>
+2.706<materials characterisation laboratory>
+2.707<furnace laboratory>
+2.708<composite fabrication laboratory>
+2.709<integrated materials and devices laboratory>
+2.710<academic media studio>
+2.711<technology office>
+2.712<beats laboratory>
+2.713<beats laboratory>
+2.714<temasek laboratories and itrust laboratory 5>
+2.716<graduate studies centre 6>
+2.717<temasek laboratories and itrust laboratory 6>
+2.718<temasek laboratories and itrust laboratory 7>
+2.719<temasek laboratories and itrust laboratory 8>
+2.720<temasek laboratories and itrust laboratory 9>
+3.201<office of admissions, office of student administration>
+3.202<lee kuan yew centre for innovative cities>
+3.301<innovation and enterprise room>
+3.302<office of international relations, singapore university of technology and design–zhejiang university collaboration office>
+3.303<behavioural design laboratory 1>
+3.304<behavioural design laboratory 2>
+3.305<behavioural design laboratory 3>
+3.307<madame curie meeting room>
+3.309<augmented human design laboratory>
+3.310<composite design laboratory>
+3.311<design and research in extreme systems laboratory>
+3.401<buckminster fuller collaboration space>
+3.402<thomas edison meeting room>
+3.406<babbage meeting room>
+3.407<james watt meeting room>
+3.408<george washington carver meeting room>
+3.410<thin film characterisation design laboratory>
+3.411<electrical device characterisation design laboratory>
+3.412<optics design laboratory>
+3.413<magnetic and mechanical materials characterisation design laboratory>
+3.501<office of internal audit>
+3.502<office of education and innovation, office of research>
+3.503<albert einstein meeting room>
+3.504<alexander graham bell meeting room>
+3.505<wright brothers meeting room>
+3.506<nikola tesla meeting room>
+3.507<chemical analytical design laboratory>
+3.508<chemical synthesis laboratory>
+3.509<digital gastronomy laboratory>
+3.601<office of marketing and communications, office of strategic planning>
+3.602<office of human resources and organisation development>
+3.607<office of finance and corporate services>
+3.701<office of chairman, office of deputy president, office of president, office of provost>
+3.702<office of advancement and development, office of education and innovation, office of investment>
+5.101<makerspace 1>
+5.101-01<wood store>
+5.101-06<woodwork section>
+5.101-07<assembly space>
+5.101-08<fabrication laboratory>
+5.101-09<three-dimensional prototyping section>
+5.101-15<composite section>
+5.101-16<painting preparation centre>
+5.103<machining section, sheet metal section>
+5.106<logistics centre>
+5.108<fire command centre>
+5.109<security control room>
+5.110<facilities management office>
+5.201<makerspace 2>
+5.201-04<laser cutting section>
+5.201-05<electronic laboratory>
+5.301<alumni office and lounge>
+5.302<training room>
+5.303<career development centre>
+5.401<student activity centre>
