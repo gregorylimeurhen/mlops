@@ -13,7 +13,6 @@ DATASET_FILENAMES = {
 		"address-to-names": "a2N.txt",
 	},
 }
-MAX_VARIANTS_PER_LINE = 2048
 TOKEN_CHARS = set(".-0123456789")
 
 def normalize_text(text):
@@ -87,12 +86,12 @@ def address_token_variants(token, digit_words, symbol_words):
 		]
 	return [variant for variant in dict.fromkeys(variants) if variant and variant != token]
 
-def line_variants(line, rules, digit_words, symbol_words, max_variants_per_line):
+def line_variants(line, rules, digit_words, symbol_words):
 	original = normalize_text(line)
 	seen = {original}
 	queue = deque([original])
 	variants = [original]
-	while queue and len(variants) < max_variants_per_line:
+	while queue:
 		current = queue.popleft()
 		for source, target, pattern in rules:
 			for match in pattern.finditer(current):
@@ -103,8 +102,6 @@ def line_variants(line, rules, digit_words, symbol_words, max_variants_per_line)
 				seen.add(candidate)
 				variants.append(candidate)
 				queue.append(candidate)
-				if len(variants) >= max_variants_per_line:
-					return variants
 		for match in re.compile(r"[0-9][0-9A-Z.-]*").finditer(current):
 			if "." not in (token := match.group(0)) and "-" not in token:
 				continue
@@ -114,8 +111,6 @@ def line_variants(line, rules, digit_words, symbol_words, max_variants_per_line)
 				seen.add(candidate)
 				variants.append(candidate)
 				queue.append(candidate)
-				if len(variants) >= max_variants_per_line:
-					return variants
 	return variants
 
 def write_lines(path, lines):
@@ -151,7 +146,7 @@ def augment_lines(lines, rules, digit_words, symbol_words):
 	output_lines = []
 	seen = set()
 	for line in lines:
-		for variant in line_variants(line, rules, digit_words, symbol_words, MAX_VARIANTS_PER_LINE):
+		for variant in line_variants(line, rules, digit_words, symbol_words):
 			if variant in seen:
 				continue
 			seen.add(variant)
@@ -169,7 +164,7 @@ def augment_pair_lines(lines, rules, digit_words, symbol_words):
 	seen = set()
 	for line in lines:
 		prompt, target = split_pair(line)
-		for variant in line_variants(prompt, rules, digit_words, symbol_words, MAX_VARIANTS_PER_LINE):
+		for variant in line_variants(prompt, rules, digit_words, symbol_words):
 			if (candidate := f"{variant}<{target}>") in seen:
 				continue
 			seen.add(candidate)
