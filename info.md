@@ -2,7 +2,7 @@
 
 Task: "Given a room name, return the corresponding room address."
 
-The code repository is structured as follows. Hereafter, let `./` represent the `code/` directory.
+The code repository is structured as follows.
 ```
 ./
   train/
