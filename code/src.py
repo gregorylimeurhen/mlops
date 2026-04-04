@@ -3,7 +3,7 @@ import io
 import math
 import random
 import re
-import time
+
 import torch
 import torch.nn.functional as F
 
@@ -67,15 +67,6 @@ class NLS:
 				current.append(min(insert_cost, delete_cost, substitute_cost))
 			previous = current
 		return previous[-1]
-
-
-class TTLT:
-	name = "ttlt"
-
-	def __call__(self, predictions, targets, durations=None):
-		if not durations:
-			return 0.0
-		return sum(durations) / len(durations)
 
 
 class TextDataset(Dataset):
@@ -564,7 +555,6 @@ def prompt_and_target(row):
 def generate_until_eos(model, tokenizer, prompt, device, max_tokens):
 	model.eval()
 	input_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
-	start = time.time()
 	generated = []
 	with torch.no_grad():
 		for _ in range(max_tokens):
@@ -576,26 +566,24 @@ def generate_until_eos(model, tokenizer, prompt, device, max_tokens):
 			generated.append(character)
 			if character == ">":
 				break
-	return "".join(generated), time.time() - start
+	return "".join(generated)
 
 
-def evaluate_rows(model, rows, tokenizer, metrics, device, max_tokens):
+def evaluate_rows(model, rows, tokenizer, metric, device, max_tokens):
 	predictions = []
 	targets = []
-	durations = []
 	details = []
 	for row in rows:
 		prompt, target = prompt_and_target(row)
-		completion, duration = generate_until_eos(model, tokenizer, prompt, device, max_tokens)
+		completion = generate_until_eos(model, tokenizer, prompt, device, max_tokens)
 		prediction = completion.split(">", 1)[0]
 		predictions.append(prediction)
 		targets.append(target)
-		durations.append(duration)
-		details.append({"gold": target, "input": prompt, "output": prediction, "ttlt": duration})
-	scores = {f"mean_{metric.name}": metric(predictions, targets, durations) for metric in metrics}
+		details.append({"gold": target, "input": prompt, "output": prediction})
+	scores = {f"mean_{metric.name}": metric(predictions, targets)}
 	return scores, details
 
 
-def instantiate_metrics(names):
-	available = {metric.__name__: metric for metric in [NLS, TTLT]}
-	return [available[name]() for name in names]
+def instantiate_metric(name):
+	available = {metric.__name__: metric for metric in [NLS]}
+	return available[name]()

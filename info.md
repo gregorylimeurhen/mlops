@@ -17,7 +17,6 @@ The code repository is structured as follows.
   config.yaml
   data.md
   main.py
-  scoreboard.csv
   src.py # contains variables, classes, and functions for datasets, architectures, metrics
 ```
 
@@ -25,17 +24,15 @@ Let $\operatorname{NLS}(p, g) = 1 - \frac{\operatorname{lev}(p, g)}{\max(|p|, |g
 
 `config.yaml` contains something like
 ```
-dataset: "pretrain"
 architecture: "GPT2"
-metrics: ["NLS", "TTLT"]
+epochs: 100
 seed: 37
 ```
 where the value for:
-1. `dataset` is a dataset name found in `data.md`.
-2. `architecture`, `metrics` are class names found in `src.py`.
-3. `seed` is a number.
+2. `architecture` is a class name found in `src.py`.
+3. `epochs`, `seed` are natural numbers.
 
-`scoreboard.csv` contains a table of the form `id, config, scores, duration`
+We log to W&B. We log a table of the form `id, config, scores, duration`
 where `id` is ID of the run,
 and `config` is the `config.yaml` of the run spread out compactly like
 e.g. `(dataset=..., architecture=..., metrics=..., seed=37)`,
@@ -62,4 +59,4 @@ Suppose `<` is BOS, `>` is EOS, `n` denotes a name and `A` a list of addresses.
 5. `val`: each row is of the form `n<A>` (e.g. `library<1.101, 1.201, 1.301>`): an American or drop-plural or American + drop re-write of a row in `finetune`.*
 6. `test`: each row is of the form `n<A>` (e.g. `library<1.101, 1.201, 1.301>`): an American or drop-plural or American + drop re-write of a row in `finetune`.*
 
-*: Assume every row in `finetune` can have at most 1 American/drop-plural/American + drop-plural re-write; split all possible re-writes 50/50 so that |`val`| = |`test`|, and `val`, `test` disjoint.
+*: There are 2 levers: American and drop-plural. Mathematically, this gives rise to possibilities: American, drop-plural, or both (American + drop-plural), or neither. Assume every row in `finetune` can have <=1 American re-write and <=1 drop-plural re-write and <=1 American + drop-plural re-write (mathematically by enumeration, a row can have (1) 0 or 1 American re-write, (2) 0 or 1 drop-plural re-write, and 0 or 1 American + drop-plural re-write); split all possible re-writes 50/50 so that |`val`| = |`test`|, and `val`, `test` disjoint.
