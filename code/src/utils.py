@@ -1,9 +1,6 @@
 import dataclasses, json, pathlib, random
 import torch
 
-EPSILON = 0.2
-AUGMENTATION_COUNT = 100
-TRAIN_AUGMENTATION_COUNT = 80
 PAD_TOKEN = "<pad>"
 SEP_TOKEN = "<sep>"
 EOS_TOKEN = "<eos>"
@@ -52,14 +49,16 @@ def load_neighbors(root):
 	return json.loads((pathlib.Path(root) / "data" / "neighbors.json").read_text())
 
 
+def load_tsv(path):
+	return [tuple(line.split("\t")) for line in pathlib.Path(path).read_text().splitlines() if line]
+
+
+def load_edges(root):
+	return [(normalize(room), address.strip()) for room, address in load_tsv(pathlib.Path(root) / "data" / "edges.tsv")]
+
+
 def load_pairs(path):
-	rows = []
-	for line in pathlib.Path(path).read_text().splitlines():
-		if not line:
-			continue
-		left, right = line.split("\t")
-		rows.append({"input": normalize(left), "gold": normalize(right)})
-	return rows
+	return [{"input": normalize(left), "gold": normalize(right)} for left, right in load_tsv(path)]
 
 
 def load_training_rows(root):
@@ -71,17 +70,21 @@ def load_test_rows(root):
 
 
 def load_room_lookup(root):
-	lookup = {}
-	for line in (pathlib.Path(root) / "data" / "n2a.tsv").read_text().splitlines():
-		if not line:
-			continue
-		room, address = line.split("\t")
-		lookup[normalize(room)] = address.strip()
-	return lookup
+	return {normalize(room): address.strip() for room, address in load_tsv(pathlib.Path(root) / "data" / "n2a.tsv")}
 
 
 def load_rooms(root):
 	return sorted(load_room_lookup(root))
+
+
+def build_room_trie(rooms, tokenizer):
+	root = {}
+	for room in sorted(rooms):
+		node = root
+		for token_id in tokenizer.encode_text(room):
+			node = node.setdefault(token_id, {})
+		node[tokenizer.eos_id] = {}
+	return root
 
 
 def build_tokenizer(root):
@@ -100,23 +103,17 @@ def rows_block_size(rows):
 	return max(len(row["input"]) + len(row["gold"]) + 1 for row in rows)
 
 
-def encode_pair(input_text, output_text, tokenizer):
-	prompt = tokenizer.encode_text(normalize(input_text))
-	target = tokenizer.encode_text(normalize(output_text))
-	tokens = prompt + [tokenizer.sep_id] + target + [tokenizer.eos_id]
-	labels = list(tokens[1:])
-	if prompt:
-		labels[:len(prompt)] = [-100] * len(prompt)
-	return {"input_ids": tokens[:-1], "labels": labels}
-
-
-def encode_from_prompt(prompt_ids, output_text, tokenizer):
+def encode(prompt_ids, output_text, tokenizer):
 	target = tokenizer.encode_text(normalize(output_text))
 	tokens = list(prompt_ids) + [tokenizer.sep_id] + target + [tokenizer.eos_id]
 	labels = list(tokens[1:])
 	if prompt_ids:
 		labels[:len(prompt_ids)] = [-100] * len(prompt_ids)
 	return {"input_ids": tokens[:-1], "labels": labels}
+
+
+def encode_pair(input_text, output_text, tokenizer):
+	return encode(tokenizer.encode_text(normalize(input_text)), output_text, tokenizer)
 
 
 def collate_examples(examples, tokenizer, device):

@@ -1,51 +1,35 @@
-import collections, json, pathlib, random
-
-EPSILON = 0.2
-AUGMENTATION_COUNT = 100
-TRAIN_AUGMENTATION_COUNT = 80
+import collections, math, pathlib, random
+import src.runtime, src.utils
 
 
-def normalize(text):
-	return text.strip().lower()
-
-
-def load_edges(root):
-	rows = []
-	for line in (root / "data" / "edges.tsv").read_text().splitlines():
-		if not line:
-			continue
-		room, address = line.split("\t")
-		rows.append((normalize(room), address.strip()))
-	return rows
-
-
-def load_neighbors(root):
-	return json.loads((root / "data" / "neighbors.json").read_text())
-
-
-def corrupt(text, neighbors, rng):
+def corrupt(text, neighbors, mutation_rate, rng):
 	return "".join(
-		neighbors[char][rng.randrange(len(neighbors[char]))] if neighbors[char] and rng.random() < EPSILON else char
+		neighbors[char][rng.randrange(len(neighbors[char]))] if neighbors[char] and rng.random() < mutation_rate else char
 		for char in text
 	)
 
 
-def split_rows(rooms, neighbors, rng):
+def split_rows(rooms, neighbors, mutation_count, mutation_rate, training_fraction, rng):
 	train_rows = []
 	test_rows = []
+	train_target = math.ceil(training_fraction * mutation_count)
 	for room in rooms:
 		seen = set()
-		train_count = 0
-		while train_count < TRAIN_AUGMENTATION_COUNT or len(seen) < AUGMENTATION_COUNT:
-			pair = (corrupt(room, neighbors, rng), room)
+		train_pairs = set()
+		test_pairs = set()
+		while len(seen) < mutation_count:
+			pair = (corrupt(room, neighbors, mutation_rate, rng), room)
+			if pair[0] == room:
+				continue
 			if pair in seen:
 				continue
 			seen.add(pair)
-			if train_count < TRAIN_AUGMENTATION_COUNT:
-				train_rows.append(pair)
-				train_count += 1
+			if len(train_pairs) < train_target:
+				train_pairs.add(pair)
 				continue
-			test_rows.append(pair)
+			test_pairs.add(pair)
+		train_rows.extend(train_pairs)
+		test_rows.extend(test_pairs)
 	train_rows.sort()
 	test_rows.sort()
 	return train_rows, test_rows
@@ -65,10 +49,11 @@ def write_rows(path, rows):
 def main():
 	root = pathlib.Path(__file__).resolve().parent
 	rng = random.Random(0)
-	edges = load_edges(root)
+	config = src.runtime.load_config(root, "preprocess")
+	edges = src.utils.load_edges(root)
 	rooms = sorted({room for room, _ in edges})
-	neighbors = load_neighbors(root)
-	train_rows, test_rows = split_rows(rooms, neighbors, rng)
+	neighbors = src.utils.load_neighbors(root)
+	train_rows, test_rows = split_rows(rooms, neighbors, config["mutation_count"], config["mutation_rate"], config["training_fraction"], rng)
 	write_rows(root / "data" / "train.tsv", train_rows)
 	write_rows(root / "data" / "test.tsv", test_rows)
 	write_rows(root / "data" / "n2a.tsv", lookup_rows(edges))

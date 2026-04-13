@@ -31,15 +31,17 @@ def levenshtein_address(text, room_lookup, rooms, rng):
 	return room_lookup[room]
 
 
-def ours_address(text, model, tokenizer, device, room_lookup, rooms, room_set):
+def ours_address(text, model, tokenizer, device, room_lookup, trie, rng, room_set):
 	if text in room_set:
 		return room_lookup[text]
-	return room_lookup[src.models.predict_room(model, tokenizer, device, text, rooms)]
+	return room_lookup[src.models.predict_room(model, tokenizer, device, text, trie, rng)]
 
 
 def evaluate_rows(model, rows, tokenizer, device, room_lookup, rooms):
 	room_set = set(rooms)
-	rng = random.Random(0)
+	levenshtein_rng = random.Random(0)
+	ours_rng = random.Random(0)
+	trie = src.utils.build_room_trie(rooms, tokenizer)
 	stats = {name: {"correct": 0, "latency": 0.0} for name in ["identity", "levenshtein", "ours"]}
 	details = []
 	for row in rows:
@@ -51,11 +53,11 @@ def evaluate_rows(model, rows, tokenizer, device, room_lookup, rooms):
 		stats["identity"]["latency"] += time.perf_counter() - start
 		stats["identity"]["correct"] += int(identity == gold_address)
 		start = time.perf_counter()
-		levenshtein = levenshtein_address(text, room_lookup, rooms, rng)
+		levenshtein = levenshtein_address(text, room_lookup, rooms, levenshtein_rng)
 		stats["levenshtein"]["latency"] += time.perf_counter() - start
 		stats["levenshtein"]["correct"] += int(levenshtein == gold_address)
 		start = time.perf_counter()
-		ours = ours_address(text, model, tokenizer, device, room_lookup, rooms, room_set)
+		ours = ours_address(text, model, tokenizer, device, room_lookup, trie, ours_rng, room_set)
 		stats["ours"]["latency"] += time.perf_counter() - start
 		stats["ours"]["correct"] += int(ours == gold_address)
 		details.append(

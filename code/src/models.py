@@ -217,24 +217,21 @@ def train(model, rows, tokenizer, device, run_dir, epochs, run):
 	return batch_size
 
 
-def predict_room(model, tokenizer, device, text, rooms):
-	prompt = tokenizer.encode_text(src.utils.normalize(text))
-	best_room = rooms[0]
-	best_score = None
+def predict_room(model, tokenizer, device, text, trie, rng):
+	prefix = tokenizer.encode_text(src.utils.normalize(text)) + [tokenizer.sep_id]
+	room = []
+	node = trie
 	model.eval()
 	with torch.no_grad():
-		for start in range(0, len(rooms), 64):
-			batch_rooms = rooms[start:start + 64]
-			examples = [src.utils.encode_from_prompt(prompt, room, tokenizer) for room in batch_rooms]
-			input_ids, labels = src.utils.collate_examples(examples, tokenizer, device)
-			logits = model(input_ids)
-			log_probs = F.log_softmax(logits, dim=-1)
-			safe_labels = labels.masked_fill(labels < 0, 0)
-			scores = log_probs.gather(2, safe_labels.unsqueeze(-1)).squeeze(-1)
-			scores = scores.masked_fill(labels < 0, 0.0).sum(dim=1)
-			index = int(scores.argmax().item())
-			score = float(scores[index].item())
-			if best_score is None or score > best_score:
-				best_score = score
-				best_room = batch_rooms[index]
-	return best_room
+		while True:
+			input_ids = torch.tensor([prefix + room], device=device, dtype=torch.long)
+			logits = model(input_ids)[0, -1]
+			allowed = sorted(node, key=lambda token_id: tokenizer.vocab[token_id])
+			allowed_logits = logits.index_select(0, torch.tensor(allowed, device=device, dtype=torch.long))
+			best_logit = allowed_logits.max()
+			best_indices = (allowed_logits == best_logit).nonzero().flatten().tolist()
+			token_id = allowed[best_indices[rng.randrange(len(best_indices))]]
+			if token_id == tokenizer.eos_id:
+				return tokenizer.decode_text(room)
+			room.append(token_id)
+			node = node[token_id]

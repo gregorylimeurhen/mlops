@@ -1,6 +1,11 @@
+[preprocess]
+mutation_count = 500
+mutation_rate = 0.1
+training_fraction = 0.8
+
 [train]
 depth = 4
 epochs = 50
 
 [test]
-checkpoint = 10
+checkpoint = 50

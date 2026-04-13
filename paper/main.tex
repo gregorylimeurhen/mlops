@@ -45,17 +45,18 @@
 % - stuff (e.g. columns, keys, rows, values, etc.) shall be sorted lexicographically, if any
 
 Let $V$ be a vocabulary,
-and $N:V\to 2^{V}$ be a key neighbourhood,
 and $R\subseteq V^{*}$ be a room set,
 and $A\subseteq V^{*}$ be an address set,
-and $\varepsilon=0.2$ be an error rate,
-and $\mathrm{A}=100$ be an augmentation count.
+and $\varepsilon\in\R_{[0,1]}$ be a mutation rate,
+and $M\in\N$ be a mutation count,
+and $\alpha\in\R_{[0,1]}$ be a training fraction,
+and $\alpha M\in\N$.
 
 \begin{algorithm}[H]
 \caption{$\textsc{Corrupt}(\bm{x})$}
 \begin{algorithmic}
 	\For{$i\in[1..\abs{\bm{x}}]$}
-		\State $N\gets N(x_{i})$
+		\State $N\gets\textsc{Neighbours}(x_{i})$
 		\If{$N=\varnothing$}
 			\State $x'_{i}\gets x_{i}$
 		\Else
@@ -82,13 +83,15 @@ and $\mathrm{A}=100$ be an augmentation count.
 		\For{$r\in R$}
 			\State $P_\mathrm{train}\gets\varnothing$
 			\State $P_\mathrm{test}\gets\varnothing$
-			\While{$\abs{P_\mathrm{train}\cup P_\mathrm{test}}<100$}
+			\While{$\abs{P_\mathrm{train}\cup P_\mathrm{test}}<M$}
 				\State $r'\sim\textsc{Corrupt}(r)$
-				\If{$(r',r)\notin P_\mathrm{train}\cup P_\mathrm{test}$}
-					\If{$\abs{P_\mathrm{train}}<80$}
-						\State $P_\mathrm{train}\gets P_\mathrm{train}\cup\{(r',r)\}$
-					\Else
-						\State $P_\mathrm{test}\gets P_\mathrm{test}\cup\{(r',r)\}$
+				\If{$r'\neq r$}
+					\If{$(r',r)\notin P_\mathrm{train}\cup P_\mathrm{test}$}
+						\If{$\abs{P_\mathrm{train}}<\alpha M$}
+							\State $P_\mathrm{train}\gets P_\mathrm{train}\cup\{(r',r)\}$
+						\Else
+							\State $P_\mathrm{test}\gets P_\mathrm{test}\cup\{(r',r)\}$
+						\EndIf
 					\EndIf
 				\EndIf
 			\EndWhile
@@ -127,7 +130,8 @@ $$
 % so look-up for `foo` yields `A, B`
 % The data is thus fixed after preprocessing
 
-The denoiser is a Nanochat-parameterised, character-level transformer with decoding constrained by the room trie.
+The denoiser is a Nanochat-parameterised, character-level transformer
+with decoding constrained by the room trie.
 We use cross-entropy loss with the Adam optimiser.
 
 % Search the web for https://github.com/karpathy/nanochat
@@ -155,6 +159,8 @@ We use cross-entropy loss with the Adam optimiser.
 \end{algorithm}
 
 \section{Experimentation}
+
+We set $\varepsilon=0.1$, and $M=500$, and $\alpha=0.8$.
 
 % We compare our method with the following online baselines
 

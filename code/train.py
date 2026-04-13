@@ -1,23 +1,6 @@
-import datetime, pathlib, shutil, time, tomllib
-import dotenv, torch, wandb
-import src.models, src.utils
-
-
-def device_for():
-	return torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def ensure_run_dir(root):
-	run_dir = pathlib.Path(root) / "runs" / ("T" + datetime.datetime.now().strftime("%M%S"))
-	(run_dir / "checkpoints").mkdir(parents=True, exist_ok=True)
-	return run_dir
-
-
-def snapshot_run_files(root, run_dir):
-	shutil.copytree(root / "data", run_dir / "data", dirs_exist_ok=True)
-	shutil.copytree(root / "src", run_dir / "src", dirs_exist_ok=True)
-	for name in ["config.toml", "preprocess.py", "requirements.txt", "test.py", "train.py"]:
-		shutil.copy2(root / name, run_dir / name)
+import pathlib, shutil, time
+import dotenv, wandb
+import src.models, src.runtime, src.utils
 
 
 def remove_wandb_dir(run_dir):
@@ -28,11 +11,12 @@ def main():
 	start = time.time()
 	root = pathlib.Path(__file__).resolve().parent
 	dotenv.load_dotenv(root / ".env")
-	config = tomllib.loads((root / "config.toml").read_text())["train"]
+	config = src.runtime.load_config(root, "train")
 	rows = src.utils.load_training_rows(root)
-	device = device_for()
-	run_dir = ensure_run_dir(root)
-	snapshot_run_files(root, run_dir)
+	device = src.runtime.device_for()
+	run_dir = src.runtime.ensure_run_dir(root, "T", "checkpoints")
+	src.runtime.copy_tree(root, run_dir)
+	src.runtime.copy_project_files(root, run_dir)
 	src.utils.set_seed(0)
 	tokenizer = src.utils.build_tokenizer(root)
 	model = src.models.build_model(config["depth"], tokenizer, src.utils.rows_block_size(rows)).to(device)
