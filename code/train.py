@@ -1,6 +1,6 @@
 import pathlib, shutil, time
 import dotenv, wandb
-import src.models, src.runtime, src.utils
+import src.models, src.utils
 
 
 def remove_wandb_dir(run_dir):
@@ -11,12 +11,12 @@ def main():
 	start = time.time()
 	root = pathlib.Path(__file__).resolve().parent
 	dotenv.load_dotenv(root / ".env")
-	config = src.runtime.load_config(root, "train")
+	config = src.utils.load_config(root, "train")
 	rows = src.utils.load_training_rows(root)
-	device = src.runtime.device_for()
-	run_dir = src.runtime.ensure_run_dir(root, "T", "checkpoints")
-	src.runtime.copy_tree(root, run_dir)
-	src.runtime.copy_project_files(root, run_dir)
+	device = src.utils.device_for()
+	run_dir = src.utils.ensure_run_dir(root, "T", "checkpoints")
+	src.utils.copy_tree(root, run_dir)
+	src.utils.copy_project_files(root, run_dir)
 	src.utils.set_seed(0)
 	tokenizer = src.utils.build_tokenizer(root)
 	model = src.models.build_model(config["depth"], tokenizer, src.utils.rows_block_size(rows)).to(device)

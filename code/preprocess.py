@@ -1,5 +1,5 @@
 import collections, math, pathlib, random
-import src.runtime, src.utils
+import src.utils
 
 
 def corrupt(text, neighbors, mutation_rate, rng):
@@ -49,7 +49,7 @@ def write_rows(path, rows):
 def main():
 	root = pathlib.Path(__file__).resolve().parent
 	rng = random.Random(0)
-	config = src.runtime.load_config(root, "preprocess")
+	config = src.utils.load_config(root, "preprocess")
 	edges = src.utils.load_edges(root)
 	rooms = sorted({room for room, _ in edges})
 	neighbors = src.utils.load_neighbors(root)

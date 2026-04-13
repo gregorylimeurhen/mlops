@@ -1,5 +1,5 @@
 import csv, json, pathlib
-import src.runtime
+import src.utils
 
 
 def checkpoint_name(value):
@@ -20,14 +20,14 @@ def write_scores(path, scores):
 
 def main():
 	root = pathlib.Path(__file__).resolve().parent
-	config = src.runtime.load_config(root, "test")
-	device = src.runtime.device_for()
-	run_dir = src.runtime.ensure_run_dir(root, "E", "results")
-	train_run_dir = src.runtime.latest_run_dir(root, "T")
-	train_src = src.runtime.load_package(train_run_dir, "src")
-	src.runtime.copy_tree(train_run_dir, run_dir)
-	src.runtime.copy_data_files(root, run_dir, ["n2a.tsv", "test.tsv"])
-	src.runtime.copy_project_files(root, run_dir)
+	config = src.utils.load_config(root, "test")
+	device = src.utils.device_for()
+	run_dir = src.utils.ensure_run_dir(root, "E", "results")
+	train_run_dir = src.utils.latest_run_dir(root, "T")
+	train_src = src.utils.load_package(train_run_dir, "src")
+	src.utils.copy_tree(train_run_dir, run_dir)
+	src.utils.copy_data_files(root, run_dir, ["n2a.tsv", "test.tsv"])
+	src.utils.copy_project_files(root, run_dir)
 	checkpoint = train_run_dir / "checkpoints" / checkpoint_name(config["checkpoint"])
 	model, tokenizer, rooms = train_src.models.load_checkpoint(checkpoint, device)
 	rows = train_src.utils.load_test_rows(run_dir)
