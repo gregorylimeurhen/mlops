@@ -624,8 +624,8 @@ def train(model, train_rows, val_rows, tok, dev, path, tolerance, run, seed):
 	rooms = sorted({row["gold"] for row in train_rows})
 	path = pathlib.Path(path)
 	latest = path.with_name("latest.pt")
-	stale_epochs = 0
 	best_val = None
+	best_epoch = 0
 	epoch = 0
 	step = train_epoch
 	check = val_loss
@@ -637,18 +637,15 @@ def train(model, train_rows, val_rows, tok, dev, path, tolerance, run, seed):
 			save_checkpoint(latest, model, tok, rooms)
 			if best_val is None or current_val_loss < best_val:
 				best_val = current_val_loss
-				stale_epochs = 0
+				best_epoch = epoch
 				save_checkpoint(path, model, tok, rooms)
-			else:
-				stale_epochs += 1
 			metrics = {
 				"epoch": epoch,
-				"stale_epochs": stale_epochs,
 				"train_loss": train_loss,
 				"val_loss": current_val_loss,
 			}
 			run.log(metrics)
-			if stale_epochs >= tolerance:
+			if epoch - best_epoch >= tolerance:
 				break
 	except KeyboardInterrupt:
 		end_progress()
