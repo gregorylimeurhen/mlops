@@ -4,11 +4,11 @@ seed = 37
 corruption_count = 50
 data_split = [0.8, 0.1, 0.1]
 substitution_rate = 0.04
-transposition_rate = 0.5
+transposition_rate = 0.2
 
 [train]
 depth = 2
-tolerance = 100
+tolerance = 50
 
 [test]
 run = "0733"

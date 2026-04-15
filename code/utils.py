@@ -344,11 +344,15 @@ def load_boundaries(root):
 
 def load_edges(root):
 	path = pathlib.Path(root) / "data" / "edges.tsv"
-	return [(normalize(room), address.strip()) for room, address in load_tsv(path)]
+	rows = []
+	for room, address in load_tsv(path):
+		rows.append((normalize(room), address.strip()))
+	return rows
 
 
 def load_neighbors(root):
-	return json.loads((pathlib.Path(root) / "data" / "neighbors.json").read_text())
+	path = pathlib.Path(root) / "data" / "neighbors.json"
+	return json.loads(path.read_text())
 
 
 def load_pairs(path):
@@ -375,7 +379,8 @@ def build_room_trie(rooms, tokenizer):
 	for room in sorted(rooms):
 		node = root
 		for token_id in tokenizer.encode_text(room):
-			node = node["children"].setdefault(token_id, {"allowed": (), "children": {}})
+			kids = node["children"]
+			node = kids.setdefault(token_id, {"allowed": (), "children": {}})
 		node["children"][tokenizer.eos_id] = {"allowed": (), "children": {}}
 	stack = [root]
 	while stack:
@@ -627,24 +632,22 @@ def train(model, train_rows, val_rows, tok, dev, path, tolerance, run, seed):
 	best_val = None
 	best_epoch = 0
 	epoch = 0
-	step = train_epoch
-	check = val_loss
+	tx = train_xs
+	vx = val_xs
 	try:
 		while True:
 			epoch += 1
-			train_loss, batch = step(model, train_xs, tok, dev, opt, batch, epoch, seed)
-			current_val_loss, batch = check(model, val_xs, tok, dev, batch)
+			loss, batch = train_epoch(model, tx, tok, dev, opt, batch, epoch, seed)
+			current_val_loss, batch = val_loss(model, vx, tok, dev, batch)
 			save_checkpoint(latest, model, tok, rooms)
 			if best_val is None or current_val_loss < best_val:
 				best_val = current_val_loss
 				best_epoch = epoch
 				save_checkpoint(path, model, tok, rooms)
-			metrics = {
-				"epoch": epoch,
-				"train_loss": train_loss,
+			run.log({
+				"train_loss": loss,
 				"val_loss": current_val_loss,
-			}
-			run.log(metrics)
+			})
 			if epoch - best_epoch >= tolerance:
 				break
 	except KeyboardInterrupt:
@@ -758,8 +761,7 @@ def damerau_levenshtein_address(text, room_lookup, rooms, rng):
 	return nearest_room_address(text, room_lookup, rooms, rng, fn)
 
 
-def evaluate_rows_into(model, rows, tok, dev, room_map, rooms, write_row, seed):
-	rm = room_map
+def evaluate_rows_into(model, rows, tok, dev, rm, rooms, write, seed):
 	room_set = set(rooms)
 	trie = build_room_trie(rooms, tok)
 	lev_rng = Rng(seed)
@@ -786,7 +788,7 @@ def evaluate_rows_into(model, rows, tok, dev, room_map, rooms, write_row, seed):
 			stats[name]["latency"] += time.perf_counter() - start
 			stats[name]["correct"] += int(prediction == gold_address)
 			detail[name] = prediction
-		write_row(detail)
+		write(detail)
 		show_progress("test", row_index, len(rows))
 	total = len(rows)
 	end_progress()

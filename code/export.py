@@ -1,15 +1,8 @@
 import argparse
-import importlib.util
 import json
 import pathlib
 import torch
-
-
-def load_utils(path):
-	spec = importlib.util.spec_from_file_location("_app_utils", path)
-	module = importlib.util.module_from_spec(spec)
-	spec.loader.exec_module(module)
-	return module
+import utils
 
 
 def dump_tensor(file, tensor, offset):
@@ -24,8 +17,6 @@ def dump_tensor(file, tensor, offset):
 
 
 def export_model(model_path, out_dir):
-	code_dir = pathlib.Path(__file__).resolve().parent
-	utils = load_utils(code_dir / "utils.py")
 	device = torch.device("cpu")
 	model_path = pathlib.Path(model_path).resolve()
 	snap_path = model_path.with_name("snapshot.zip")
@@ -72,7 +63,7 @@ def export_model(model_path, out_dir):
 def parse_args():
 	parser = argparse.ArgumentParser()
 	path = pathlib.Path(__file__).resolve().parent
-	cfg = load_utils(path / "utils.py").load_config(path, "export")
+	cfg = utils.load_config(path, "export")
 	run = str(cfg["run"]).strip()
 	model = path / "runs" / run / "train" / "model.pt"
 	out = path / "app"

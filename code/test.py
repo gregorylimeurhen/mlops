@@ -24,14 +24,12 @@ def main():
 		with utils.loaded_snapshot(snap_path) as (root2, ev):
 			model, tok, rooms = ev.load_checkpoint(model_path, dev)
 			rows = ev.load_rows(root2, "test")
-			room_map = ev.load_room_lookup(root2)
+			rm = ev.load_room_lookup(root2)
 			seed = ev.load_seed(root2)
-			score = ev.evaluate_rows_into
-			write = writer.writerow
-			scores = score(model, rows, tok, dev, room_map, rooms, write, seed)
-	score_text = json.dumps(scores)
+			wr = writer.writerow
+			scores = ev.evaluate_rows_into(model, rows, tok, dev, rm, rooms, wr, seed)
 	(results_dir / "scores.json").write_text(json.dumps(scores, indent=2) + "\n")
-	print(score_text)
+	print(json.dumps(scores))
 
 
 if __name__ == "__main__":

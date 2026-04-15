@@ -21,13 +21,12 @@ def main():
 	val_size = utils.rows_block_size(val)
 	block_size = max(train_size, val_size)
 	model = utils.build_model(cfg["depth"], tok, block_size).to(dev)
+	n = run_dir.parent.name
+	rd = str(run_dir)
 	sets = wandb.Settings(quiet=True, show_info=False, show_warnings=False)
-	name = run_dir.parent.name
-	path = run_dir / "model.pt"
-	init = wandb.init
-	dir2 = str(run_dir)
-	run = init(config=cfg, dir=dir2, name=name, project="mlops", settings=sets)
+	run = wandb.init(config=cfg, dir=rd, name=n, project="mlops", settings=sets)
 	with run:
+		path = run_dir / "model.pt"
 		utils.train(model, train, val, tok, dev, path, cfg["tolerance"], run, seed)
 
 
