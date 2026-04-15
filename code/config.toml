@@ -14,5 +14,7 @@ tolerance = 100
 [test]
 run = "5327"
 
-[export]
-run = "0733"
+[deploy]
+api = "https://api.netlify.com/api/v1"
+site = "sutdoko"
+team = "gregorylimeurhen"
