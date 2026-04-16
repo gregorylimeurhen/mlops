@@ -31,11 +31,6 @@ with open('deploy_client_extension/tokenizer.json', 'w') as f:
 print("Tokenizer saved as tokenizer.json")
 
 
-# 3. Create dummy input for ONNX tracing
-dummy_text = "I need to borrow a book"
-max_len = 128   # should match the max_seq_len used during training
-
-
 # Tokenize using your custom tokenizer's encode method
 # 3. Helper to tokenize, pad, and create attention mask
 def prepare_inputs(text, max_len=128):
@@ -65,17 +60,31 @@ max_len = 128
 dummy_input_ids, dummy_attention_mask = prepare_inputs(dummy_text, max_len)
 
 
+print("\n--- Inspecting model output ---")
+with torch.no_grad():
+    output = model(dummy_input_ids, dummy_attention_mask)
+    print(f"Output shape: {output.shape}")
+    if output.numel() == 1:
+        print(f"Scalar value: {output.item()}")
+
 # 4. Export to ONNX
+model.eval()
+
+# Prepare your dummy inputs
+dummy_input_ids = ...
+dummy_attention_mask = ...
+
+# EXPORT: Explicitly call the model with labels=None for tracing
 torch.onnx.export(
     model,
-    (dummy_input_ids, dummy_attention_mask),
-    "deploy_client_extension/model.onnx",
+    (dummy_input_ids, dummy_attention_mask),  # Inputs
+    "model.onnx",
     input_names=['input_ids', 'attention_mask'],
-    output_names=['sentence_embedding'],   # adjust to your model's output name
+    output_names=['logits'],  # Name the output tensor
     dynamic_axes={
         'input_ids': {0: 'batch_size', 1: 'sequence_length'},
         'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
-        'sentence_embedding': {0: 'batch_size'}
+        'logits': {0: 'batch_size', 1: 'sequence_length'}
     }
 )
 print("Initial ONNX export completed")

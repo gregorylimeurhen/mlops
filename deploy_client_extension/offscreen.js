@@ -1,150 +1,125 @@
-// ort is already loaded and available as a global variable
+// offscreen.js – runs inside the hidden offscreen document
+// Implements the same inference logic as test.py (scalar → room index → room name)
+
 let session = null;
-let tokenizer = null;
+let roomNames = [];
+let maxLength = 128;
+let isModelReady = false;
+let tokenizerStoi = null;
+let padId = 0, unkId = 0, clsId = 1, sepId = 2; // special token ids (must match training)
 
-// ---------- BERT Tokenizer (same as before) ----------
-class BertTokenizer {
-  constructor(tokenizerJson) {
-    this.vocab = tokenizerJson.model.vocab;
-    this.unkToken = '[UNK]';
-    this.clsToken = '[CLS]';
-    this.sepToken = '[SEP]';
-    this.padToken = '[PAD]';
-    this.maxLen = 128;
-    this.vocabMap = new Map();
-    for (const [token, id] of Object.entries(this.vocab)) {
-      this.vocabMap.set(token, id);
-    }
+// ------------------------------------------------------------------
+// 1. Load tokenizer (character‑level) from tokenizer.json
+// ------------------------------------------------------------------
+async function loadTokenizer() {
+  const resp = await fetch(chrome.runtime.getURL('tokenizer.json'));
+  const json = await resp.json();
+  const vocab = json.model.vocab;          // { "a": 0, "b": 1, ... }
+  const stoi = new Map();
+  for (const [ch, id] of Object.entries(vocab)) {
+    stoi.set(ch, id);
   }
-  tokenize(text) {
-    text = text.toLowerCase().trim();
-    const words = text.split(/\s+/);
-    const tokens = [];
-    for (const word of words) {
-      let start = 0;
-      while (start < word.length) {
-        let end = word.length;
-        let found = false;
-        while (end > start) {
-          const sub = (start === 0 ? '' : '##') + word.substring(start, end);
-          if (this.vocabMap.has(sub)) {
-            tokens.push(sub);
-            start = end;
-            found = true;
-            break;
-          }
-          end--;
-        }
-        if (!found) {
-          tokens.push('[UNK]');
-          break;
-        }
-      }
-    }
-    return tokens;
-  }
-  encode(text) {
-    const tokens = this.tokenize(text);
-    let truncated = tokens.slice(0, this.maxLen - 2);
-    const inputIds = [
-      this.vocabMap.get(this.clsToken),
-      ...truncated.map(t => this.vocabMap.get(t) || this.vocabMap.get(this.unkToken)),
-      this.vocabMap.get(this.sepToken)
-    ];
-    const attentionMask = new Array(inputIds.length).fill(1);
-    const padId = this.vocabMap.get(this.padToken);
-    while (inputIds.length < this.maxLen) {
-      inputIds.push(padId);
-      attentionMask.push(0);
-    }
-    return { inputIds, attentionMask };
-  }
+  // Special token ids (the JSON should contain them)
+  padId = stoi.get('[PAD]') ?? 0;
+  unkId = stoi.get('[UNK]') ?? 3;
+  clsId = stoi.get('[CLS]') ?? 1;
+  sepId = stoi.get('[SEP]') ?? 2;
+  return stoi;
 }
 
-// Mean pooling function (same as before)
-function meanPooling(tokenEmbeddings, attentionMask) {
-  const batch = tokenEmbeddings.dims[0];
-  const seqLen = tokenEmbeddings.dims[1];
-  const hidden = tokenEmbeddings.dims[2];
-  const embData = tokenEmbeddings.data;
-  const maskData = attentionMask.data;
-  const sumData = new Float32Array(batch * hidden);
-  const countData = new Float32Array(batch * hidden);
-  for (let i = 0; i < batch; i++) {
-    for (let j = 0; j < seqLen; j++) {
-      const maskVal = maskData[i * seqLen + j];
-      if (maskVal === 0) continue;
-      for (let k = 0; k < hidden; k++) {
-        const idx = i * hidden + k;
-        const embIdx = i * seqLen * hidden + j * hidden + k;
-        sumData[idx] += embData[embIdx];
-        countData[idx] += 1;
-      }
-    }
-  }
-  const pooled = new Float32Array(batch * hidden);
-  for (let i = 0; i < batch * hidden; i++) {
-    pooled[i] = sumData[i] / (countData[i] + 1e-9);
-  }
-  return new ort.Tensor('float32', pooled, [batch, hidden]);
+// ------------------------------------------------------------------
+// 2. Load room names from rooms.json (generated from edges.tsv)
+// ------------------------------------------------------------------
+async function loadRooms() {
+  const resp = await fetch(chrome.runtime.getURL('rooms.json'));
+  return await resp.json();   // array of room names, same order as model's training
 }
 
-// Load model and tokenizer
-async function loadModelAndTokenizer() {
+// ------------------------------------------------------------------
+// 3. Tokenization (exactly as in test.py / evaluate_rows_into)
+//    - character‑level
+//    - add [CLS] at beginning, [SEP] at end
+//    - truncate to maxLength - 2
+//    - pad to maxLength with [PAD]
+// ------------------------------------------------------------------
+function tokenize(text, stoi, maxLen) {
+  // Character tokenization
+  const chars = text.split('');
+  let ids = chars.map(ch => stoi.get(ch) ?? unkId);
+  // Truncate to make room for [CLS] and [SEP]
+  if (ids.length > maxLen - 2) ids = ids.slice(0, maxLen - 2);
+  const inputIds = [clsId, ...ids, sepId];
+  const attentionMask = new Array(inputIds.length).fill(1);
+  // Pad
+  while (inputIds.length < maxLen) {
+    inputIds.push(padId);
+    attentionMask.push(0);
+  }
+  return { inputIds, attentionMask };
+}
+
+// ------------------------------------------------------------------
+// 4. Inference: scalar output → room index → room name
+//    Matches evaluate_rows_into: model returns a scalar, we round to nearest integer
+// ------------------------------------------------------------------
+async function predictRoom(prompt) {
+  if (!session || !tokenizerStoi || !isModelReady) {
+    return "Model not ready yet.";
+  }
   try {
-    const modelPath = chrome.runtime.getURL('model.onnx');
-    
-    // Configure ONNX Runtime to use only the WASM backend
-    const sessionOptions = {
-      executionProviders: ['wasm'],          // only use WebAssembly
-      graphOptimizationLevel: 'all',
-      enableCpuMemArena: false,
-      wasm: {
-        // Point to the exact WASM file you have (simd-threaded version)
-        wasmPaths: chrome.runtime.getURL(''),
-        // The library will append the correct filename; or you can set full path:
-        // wasmUrl: chrome.runtime.getURL('ort-wasm-simd-threaded.wasm')
-      }
-    };
-
-    session = await ort.InferenceSession.create(modelPath, sessionOptions);
-    
-    const tokenizerUrl = chrome.runtime.getURL('tokenizer.json');
-    const response = await fetch(tokenizerUrl);
-    const tokenizerJson = await response.json();
-    tokenizer = new BertTokenizer(tokenizerJson);
-    console.log('Offscreen: model & tokenizer ready');
-  } catch (e) {
-    console.error('Offscreen load error:', e);
-  }
-}
-loadModelAndTokenizer();
-
-// Inference function
-async function getSentenceEmbedding(text) {
-  if (!session || !tokenizer) return null;
-  try {
-    const { inputIds, attentionMask } = tokenizer.encode(text);
-    const inputTensor = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(x => BigInt(x))), [1, tokenizer.maxLen]);
-    const maskTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(x => BigInt(x))), [1, tokenizer.maxLen]);
+    const { inputIds, attentionMask } = tokenize(prompt, tokenizerStoi, maxLength);
+    const inputTensor = new ort.Tensor('int64', BigInt64Array.from(inputIds.map(x => BigInt(x))), [1, maxLength]);
+    const maskTensor = new ort.Tensor('int64', BigInt64Array.from(attentionMask.map(x => BigInt(x))), [1, maxLength]);
     const feeds = { input_ids: inputTensor, attention_mask: maskTensor };
     const results = await session.run(feeds);
-    const pooled = meanPooling(results.last_hidden_state, maskTensor);
-    return Array.from(pooled.data);
+    // The model outputs a scalar (shape []) – this is the raw prediction
+    const scalarValue = results.logits.data[0];   // output name 'logits'
+    // Round to nearest integer to get room index (same as test.py)
+    const roomIndex = Math.round(scalarValue);
+    if (roomIndex >= 0 && roomIndex < roomNames.length) {
+      return `You are heading to ${roomNames[roomIndex]}.`;
+    } else {
+      return `I'm not sure which room you mean. (Predicted index: ${roomIndex})`;
+    }
   } catch (err) {
-    console.error('Inference error:', err);
-    return null;
+    console.error('Prediction error:', err);
+    return `Error: ${err.message}`;
   }
 }
 
-// Listen for messages from background
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GET_EMBEDDING') {
-    getSentenceEmbedding(request.text).then(emb => {
-      sendResponse({ embedding: emb });
-    }).catch(err => {
-      sendResponse({ embedding: null });
+// ------------------------------------------------------------------
+// 5. Initialisation (load model, tokenizer, rooms in parallel)
+// ------------------------------------------------------------------
+async function init() {
+  try {
+    const modelPath = chrome.runtime.getURL('model.onnx');
+    session = await ort.InferenceSession.create(modelPath, {
+      executionProviders: ['cpu']
     });
+    const [stoi, rooms] = await Promise.all([loadTokenizer(), loadRooms()]);
+    tokenizerStoi = stoi;
+    roomNames = rooms;
+    isModelReady = true;
+    console.log('Offscreen: model, tokenizer, and rooms ready (test.py compatible)');
+  } catch (err) {
+    console.error('Init error:', err);
+    isModelReady = false;
+  }
+}
+init();
+
+// ------------------------------------------------------------------
+// 6. Listen for chat requests from popup
+// ------------------------------------------------------------------
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.type === 'CHAT_REQUEST') {
+    if (!isModelReady) {
+      sendResponse({ reply: "Model is still loading. Please wait a few seconds and try again." });
+      return true;
+    }
+    predictRoom(request.prompt)
+      .then(reply => sendResponse({ reply }))
+      .catch(err => sendResponse({ reply: `Error: ${err.message}` }));
     return true;
   }
 });

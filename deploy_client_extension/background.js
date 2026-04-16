@@ -13,27 +13,20 @@ async function ensureOffscreen() {
   await chrome.offscreen.createDocument({
     url: 'offscreen.html',
     reasons: [chrome.offscreen.Reason.DOM_PARSER],
-    justification: 'Run ONNX Runtime model'
+    justification: 'Run ONNX model'
   });
   offscreenReady = true;
   console.log('Offscreen document created');
 }
 
-ensureOffscreen()
-
+// Forward messages from popup to offscreen and back
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'GET_EMBEDDING') {
+  if (request.type === 'CHAT_REQUEST') {
     ensureOffscreen().then(() => {
-      // forward to offscreen
-      chrome.runtime.sendMessage(request).then(sendResponse).catch(err => sendResponse({ embedding: null, error: err.message }));
+      chrome.runtime.sendMessage(request).then(response => {
+        sendResponse(response);
+      }).catch(err => sendResponse({ error: err.message }));
     });
-    return true;
-  }
-});
-
-// optional: log messages from offscreen
-chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.from === 'offscreen' && msg.type === 'log') {
-    console.log('[Offscreen]', ...msg.args);
+    return true; // async
   }
 });
