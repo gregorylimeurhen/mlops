@@ -3,7 +3,7 @@
 const EPS = 1.1920928955078125e-7
 
 const ui = {
-	input: document.getElementById("input"),
+	input: document.querySelector("#input input"),
 	output: document.getElementById("output"),
 }
 class Model {
@@ -844,11 +844,12 @@ async function boot() {
 		if (!a.ok || !b.ok) {
 			return
 		}
-		const assets = await a.json()
-		const buf = await b.arrayBuffer()
-		model = new Model(assets, buf)
-		ui.input.focus()
-		update()
+			const assets = await a.json()
+			const buf = await b.arrayBuffer()
+			model = new Model(assets, buf)
+			ui.input.disabled = false
+			ui.input.focus()
+			update()
 	} catch (_) {
 	}
 }
@@ -856,15 +857,14 @@ async function boot() {
 
 function render(rows) {
 	ui.output.replaceChildren()
-	for (let i = 0; i < 10; i += 1) {
-		const tr = document.createElement("tr")
-		const name = document.createElement("td")
-		const address = document.createElement("td")
-		const row = rows[i] || ["", ""]
+	for (const row of rows) {
+		const item = document.createElement("div")
+		const name = document.createElement("h2")
+		const address = document.createElement("p")
 		name.textContent = row[0]
 		address.textContent = row[1]
-		tr.append(name, address)
-		ui.output.append(tr)
+		item.append(name, address)
+		ui.output.append(item)
 	}
 }
 

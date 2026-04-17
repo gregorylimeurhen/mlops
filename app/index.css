@@ -3,6 +3,7 @@
 	font-family: "Inter";
 	font-size: 16px;
 	font-weight: 400;
+	overflow-wrap: break-word;
 }
 
 body {
@@ -18,12 +19,12 @@ main {
 	width: 80vw;
 }
 
-#search {
+section#input {
 	position: relative;
 	width: 100%;
 }
 
-#icon {
+img {
 	color: grey;
 	height: 1.25rem;
 	left: 1.25rem;
@@ -44,27 +45,18 @@ input {
 	width: 100%;
 }
 
-table {
-	border-collapse: collapse;
+section#output {
 	margin-top: 2rem;
-	table-layout: fixed;
-	width: 100%;
 }
 
-td {
-	border: 0;
-	padding: 0;
+div + div {
+	margin-top: 1rem;
 }
 
-td:first-child {
-	max-width: 32ch;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	text-align: left;
-	white-space: nowrap;
+h2, p {
+	margin: 0.5rem;
 }
 
-td:last-child {
+p {
 	font-weight: 500;
-	text-align: right;
 }
