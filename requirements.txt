@@ -1,8 +1,2 @@
 python-dotenv
 wandb
-torch
-transformers
-huggingface_hub
-onnx
-onnxscript
-onnxruntime
