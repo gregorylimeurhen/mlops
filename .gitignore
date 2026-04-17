@@ -1,5 +1,6 @@
 .env
 __pycache__/
+experiments/runs/
 paper/*.aux
 paper/*.bbl
 paper/*.fdb_latexmk

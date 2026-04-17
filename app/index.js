@@ -70,7 +70,15 @@ class Model {
 			const ids = this.encodeText(room)
 			const segs = this.segHist(key)
 			const hist = this.charHist(key)
-			this.roomRows.push([room, key, ids, segs, hist])
+			this.roomRows.push({
+				hist,
+				ids,
+				key,
+				rank: 0,
+				room,
+				segs,
+				vs: Array(9).fill(0),
+			})
 		}
 		for (const name of Object.keys(assets.tensors)) {
 			const info = assets.tensors[name]
@@ -231,7 +239,7 @@ class Model {
 
 	histScore(left, right) {
 		let score = 0
-		for (const char of Object.keys(left)) {
+		for (const char in left) {
 			score += Math.min(left[char], right[char] || 0)
 		}
 		return score
@@ -850,46 +858,32 @@ class Model {
 		}
 		const leftSeg = this.segHist(input)
 		const leftHist = this.charHist(input)
-		let rows = []
-		for (const [room, key, ids, segs, hist] of this.roomRows) {
-			rows.push({
-				segs,
-				hist,
-				ids,
-				key,
-				room,
-				vs: [
-					Number(key === input),
-					Number(key.startsWith(input)),
-					Number(key.includes(input)),
-					this.commonPrefix(input, key),
-					this.commonSubstring(input, key),
-					this.histScore(leftSeg, segs),
-					this.histScore(leftHist, hist),
-					-this.damerau(input, key),
-				],
-			})
+		const rows = this.roomRows
+		for (const row of rows) {
+			const key = row.key
+			const vs = row.vs
+			vs[0] = Number(key === input)
+			vs[1] = Number(key.startsWith(input))
+			vs[2] = Number(key.includes(input))
+			vs[3] = this.commonPrefix(input, key)
+			vs[4] = this.commonSubstring(input, key)
+			vs[5] = this.histScore(leftSeg, row.segs)
+			vs[6] = this.histScore(leftHist, row.hist)
+			vs[7] = -this.damerau(input, key)
 		}
+		this.sortLayer(rows, 8)
+		const ours = this.roomScores(input, rows.slice(0, 12))
+		for (const row of rows) {
+			const score = row.room in ours ? ours[row.room] : -Infinity
+			row.vs[8] = score
+		}
+		this.sortLayer(rows, 9)
 		let out = []
-		let rest = rows
-		while (rest.length && out.length < 5) {
-			const layer = this.paretoLayer(rest, 8)
-			if (layer.length > 1) {
-				const ours = this.roomScores(input, layer)
-				for (const row of layer) {
-					const score = row.room in ours ? ours[row.room] : -Infinity
-					row.vs.push(score)
-				}
-				this.sortLayer(layer, 9)
+		for (const row of rows) {
+			out.push([row.room, this.roomLookup[row.room] || ""])
+			if (out.length >= 10) {
+				break
 			}
-			for (const row of layer) {
-				out.push([row.room, this.roomLookup[row.room] || ""])
-				if (out.length >= 5) {
-					break
-				}
-			}
-			const seen = new Set(layer.map(row => row.room))
-			rest = rest.filter(row => !seen.has(row.room))
 		}
 		this.solveCache.set(input, out)
 		return out
@@ -898,6 +892,7 @@ class Model {
 
 
 let model = null
+let frame = 0
 
 
 async function boot() {
@@ -945,7 +940,18 @@ function update() {
 }
 
 
-ui.input.addEventListener("input", update)
+function queueUpdate() {
+	if (frame) {
+		return
+	}
+	frame = requestAnimationFrame(() => {
+		frame = 0
+		update()
+	})
+}
+
+
+ui.input.addEventListener("input", queueUpdate)
 
 
 boot()

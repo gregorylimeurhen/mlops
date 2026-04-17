@@ -135,6 +135,8 @@ def deploy_paths(root):
 	for path in sorted(root.rglob("*")):
 		if path.is_dir():
 			continue
+		if any(part.startswith(".") for part in path.relative_to(root).parts):
+			continue
 		if "__pycache__" in path.parts:
 			continue
 		if path.suffix == ".py":

@@ -311,6 +311,10 @@ def write_snapshot(path, source_root):
 		for source in sorted(source_root.rglob("*")):
 			relative = source.relative_to(source_root)
 			parts = relative.parts
+			if any(part.startswith(".") for part in parts):
+				continue
+			if "__pycache__" in parts:
+				continue
 			if parts and parts[0] in {"app", "runs"}:
 				continue
 			archive.write(source, relative)
