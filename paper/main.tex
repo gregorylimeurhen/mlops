@@ -6,13 +6,13 @@
 \usepackage{amsthm}
 \usepackage{bm}
 \usepackage{booktabs}
+\usepackage{hyperref}
 \usepackage[scr=boondox]{mathalpha}
 \usepackage{mathtools}
 \usepackage{mleftright}
 \usepackage{parskip}
 \usepackage{physics}
 \usepackage{times}
-\usepackage{url}
 \usepackage{xcolor}
 \usepackage{xparse}
 
@@ -59,13 +59,21 @@ $\texttt{x.y-z}$,
 where $\texttt{x}$ is a building number,
 $\texttt{y}$ is a floor number,
 and $\texttt{z}$ is a room number.
+
 However, resources that aim to map rooms to addresses remain few and far between.
 Physical resources like campus signs exist, but require one to walk around, expending lots of energy and time.
 Digital resources like the SUTD Assistive Maps (SAM) Telegram bot exist, but are often arduous to maintain and less robust to noise like typos (which can be especially pertinent for visitors who do not often type in English).
-To fill this gap, we built SUTD 404, a digital resource that aims to maps rooms to addresses in a way that learns over time and handles noise gracefully.
-Our GitHub repository can be found at \url{gregorylimeurhen/sutd404}.
 
-\newpage
+To fill this gap, we built SUTD 404, a digital resource that aims to maps rooms to addresses in a way that handles noise gracefully.
+Our repository and web application can be found at
+\begin{center}
+\href{github.com/gregorylimeurhen/sutd404}{github.com/gregorylimeurhen/sutd404}
+\end{center}
+and
+\begin{center}
+\href{sutd404.vercel.app}{sutd404.vercel.app}
+\end{center}
+respectively.
 
 \section{Methodology}
 
@@ -115,7 +123,7 @@ All keys have equal padding between them.
 		\State ${
 			(T_{L},T_{M},T_{R})
 			\gets
-			(\{\bm{\epsilon}\}\cup V^{*}B,(V\setminus B)^{+},\{\bm{\epsilon}\}\cup BV^{*})
+			(V^{*}B\cup\{()\},(V\setminus B)^{+},BV^{*}\cup\{()\})
 		}$
 		\State ${
 			T
@@ -174,13 +182,12 @@ All keys have equal padding between them.
 	\end{algorithmic}
 \end{algorithm}
 
-We set $C=50$, and $\alpha=0.5$, and $\beta=0.05$, and $\bm{\pi}=(0.8,0.1,0.1)$.
 Our corruption algorithm corrupts strings by transposing spans and substituting characters.
 First, the algorithm samples whether to transpose spans by uniformly sampling from the space of span transpositions.
 Then, for each character in the string, the algorithm samples whether to substitute the character by uniformly sampling from the space of character substitutions.
 This space contains nearby characters collected by sliding a window of height $3$ and width $5$ centred at each position in $K$.
-Finally, the algorithm returns the corrupted string.
-The algorithm terminates on our hyperparameter choices.
+Finally, the algorithm returns the string.
+We set $C=50$, and $\alpha=0.5$, and $\beta=0.05$, and $\bm{\pi}=(0.8,0.1,0.1)$ to generate plausible-looking typos tractably.
 
 \begin{definition}[Denoiser]
 Let $f:V^{*}\times R\to\R$ be a scorer.
@@ -211,11 +218,12 @@ $$
 % so look-up for `foo` yields `A, B`
 % The data is thus fixed after preprocessing
 
-Our denoiser is a standard Nanochat-parameterised transformer of depth $2$ with character-level tokenisation. % cite karpathy/nanochat
+Our denoiser is a Nanochat-parameterised, character-level transformer of depth 2 with decoding constrained to the trie induced by $R$. % cite karpathy/nanochat
 We use character-level tokenisation as typos are often character-level, and room names are short enough for individual characters to be highly meaningful semantic units for our task.
+We use trie-constrained decoding to efficiently avoid hallucination caused by unconstrained decoding.
 We use a standard cross-entropy loss and AdamW optimiser.
 A complete list of hyperparameters can be found in our GitHub repository.
-Our lookup is a standard key-value map from rooms to addresses.
+Our lookup is a standard room-address table.
 
 % Search the web for https://github.com/karpathy/nanochat
 % Everything is clean, default, and standard with no other stuffs:
@@ -239,13 +247,11 @@ Our lookup is a standard key-value map from rooms to addresses.
 \end{algorithm}
 
 Our inference algorithm receives a scorer and string as input.
-First, the algorithm denoises the string to a room using the scorer if the string is not a room.
+Firstly, the algorithm denoises the string to a room using the scorer if the string is not a room.
 Then, the algorithm looks up the address of the room.
 Finally, the algorithm returns the address.
 
-\newpage
-
-\section{Experimentation}
+\section{Evaluation}
 
 Keeping the hardware and rest of the system fixed, we evaluated our denoiser against Levenshtein distance, Damerau--Levenshtein distance (DL), longest common subsequence length (LCS), and character histogram intersection (CH) denoisers,
 measuring the accuracy and mean latency of each denoiser on the test set.
@@ -273,20 +279,20 @@ LCS and CH capture ordered and unordered character overlap respectively.
 Accuracy was measured using the fraction of test inputs for which final address equals gold address.
 Mean latency was measured using the mean time taken to get an output from giving an input.
 
-\newpage
-
 \section{Deployment}
-
-We deployed SUTD 404 as web application served at \url{sutd404.vercel.app}.
 
 \begin{algorithm}[H]
 	\caption{$\textsc{Predict}(x)$}
 	\begin{algorithmic}
 		\Require $x\in V^{*}$
 		\State $x\gets\textsc{Strip}(x)$
+		% example: " LT2 " -> "LT2"
 		\State $x\gets\textsc{Lowercase}(x)$
+		% example: "LT2" -> "lt2"
 		\State $x\gets\textsc{AlphanumericSplit}(x)$
+		% example: "lt2" -> "lt 2"
 		\State $x\gets\textsc{Alias}(x)$
+		% example: "lt 2" -> "lecture theatre 2"
 		\If{$x\in R$}
 			\Return $(x,\mathscr{L}(x))$
 		\EndIf
@@ -312,6 +318,18 @@ We deployed SUTD 404 as web application served at \url{sutd404.vercel.app}.
 	\end{algorithmic}
 \end{algorithm}
 
-Our prediction algorithm uses all denoisers in parallel as they have comparable latencies on millisecond timescales and are able to cover each others' weaknesses.
+Our prediction algorithm receives a string as input.
+Firstly, the algorithm normalises the string by stripping, lowercasing, separating letters from numbers, and replacing words with aliases, to more closely match strings at training.
+Then, in parallel, the algorithm collects the top-2 rooms for the string under L, DL, LCS, CH, and an augmented version of our denoiser, as they have comparable latencies and are able to cover each others' weaknesses.
+This augmented version of our denoiser uses beam search with beam width 2 to improve robustness at comparable latency. % Is this basically accurate?
+Finally, the algorithm looks up the address of each room, returning the room-address pairs in lexicographic order for readability.
+
+To improve the user experience of our application,
+we made our application call the prediction algorithm on each new character entered and use prefix (key-value) caching,
+to efficiently make the application feel more responsive.
+
+\section{Conclusion}
+
+
 
 \end{document}

@@ -129,6 +129,7 @@ def export_model(model_path, out_dir):
 		raise FileNotFoundError(str(snap_path))
 	with utils.loaded_snapshot(snap_path) as (snap_root, ev):
 		model, tok, rooms = ev.load_checkpoint(model_path, dev)
+		aliases = ev.load_aliases(snap_root)
 		room_map = ev.load_room_lookup(snap_root)
 		seed = ev.load_seed(snap_root)
 		trie = ev.build_room_trie(rooms, tok)
@@ -152,6 +153,7 @@ def export_model(model_path, out_dir):
 	items = sorted(room_map.items())
 	assets = {
 		"config": config,
+		"aliases": aliases,
 		"rooms": sorted(rooms),
 		"room_lookup": {key: value for key, value in items},
 		"seed": seed,

@@ -3,16 +3,20 @@
 const EPS = 1.1920928955078125e-7
 
 const ui = {
-	form: document.getElementById("form"),
 	input: document.getElementById("input"),
 	out: document.getElementById("out"),
-	run: document.getElementById("run"),
 }
 class Model {
 	constructor(assets, buf) {
+		this.aliases = []
+		this.cache = {cache: null, ids: [], text: ""}
 		this.cfg = assets.config
+		this.direct = {}
+		this.keys = []
 		this.rooms = assets.rooms
-		this.roomSet = new Set(this.rooms)
+		this.roomKeys = {}
+		this.roomRows = []
+		this.solveCache = new Map()
 		this.tok = assets.tokenizer
 		this.trie = assets.trie
 		this.vocab = this.tok.vocab
@@ -25,9 +29,52 @@ class Model {
 		for (let i = 0; i < this.vocab.length; i += 1) {
 			this.stoi[this.vocab[i]] = i
 		}
-		this.roomHists = []
+		for (const [source, target] of assets.aliases || []) {
+			const left = this.rawText(source)
+			const right = this.rawText(target)
+			const leftWord = this.hasWord(left)
+			const rightWord = this.hasWord(right)
+			const gap = right || " "
+			if (!left) {
+				continue
+			}
+			if (!leftWord) {
+				this.setDirect(left, gap)
+				continue
+			}
+			if (!rightWord) {
+				if (right) {
+					this.setDirect(right, this.basicKey(left))
+				}
+				continue
+			}
+			const from = this.basicWords(right)
+			const to = this.basicKey(left)
+			if (!from.length || !to) {
+				continue
+			}
+			this.aliases.push([from, to])
+		}
+		this.aliases.sort((left, right) => {
+			const a = left[0].length
+			const b = right[0].length
+			if (a !== b) {
+				return b - a
+			}
+			return left[1].localeCompare(right[1])
+		})
+		this.keys = Object.keys(this.direct)
+		this.keys.sort((left, right) => right.length - left.length)
 		for (const room of this.rooms) {
-			this.roomHists.push([room, this.charHist(room)])
+			const key = this.normalize(room)
+			if (!this.roomKeys[key]) {
+				this.roomKeys[key] = []
+			}
+			this.roomKeys[key].push(room)
+			this.roomRows.push([room, key, this.charHist(key)])
+		}
+		for (const key of Object.keys(this.roomKeys)) {
+			this.roomKeys[key].sort((left, right) => left.localeCompare(right))
 		}
 		for (const name of Object.keys(assets.tensors)) {
 			const info = assets.tensors[name]
@@ -53,8 +100,98 @@ class Model {
 		return {cos, half, sin}
 	}
 
-	normalize(text) {
+	rawText(text) {
 		return text.trim().toLowerCase()
+	}
+
+	hasWord(text) {
+		return /[a-z0-9]/.test(text)
+	}
+
+	setDirect(source, target) {
+		const prev = this.direct[source]
+		if (!prev || target.length > prev.length) {
+			this.direct[source] = target
+		}
+	}
+
+	isLetter(char) {
+		return char >= "a" && char <= "z"
+	}
+
+	isDigit(char) {
+		return char >= "0" && char <= "9"
+	}
+
+	splitAlnum(text) {
+		let out = ""
+		let prev = ""
+		for (const char of text) {
+			const left = this.isLetter(prev) && this.isDigit(char)
+			const right = this.isDigit(prev) && this.isLetter(char)
+			if (out && (left || right)) {
+				out += " "
+			}
+			out += char
+			prev = char
+		}
+		return out
+	}
+
+	basicKey(text) {
+		let out = this.rawText(text)
+		for (const key of this.keys) {
+			out = out.split(key).join(this.direct[key])
+		}
+		out = this.splitAlnum(out)
+		out = out.replace(/[^a-z0-9]+/g, " ")
+		return out.trim().replace(/\s+/g, " ")
+	}
+
+	basicWords(text) {
+		const key = this.basicKey(text)
+		if (!key) {
+			return []
+		}
+		return key.split(" ")
+	}
+
+	expandAliases(words) {
+		let out = []
+		let start = 0
+		while (start < words.length) {
+			let hit = null
+			for (const row of this.aliases) {
+				const end = start + row[0].length
+				if (end > words.length) {
+					continue
+				}
+				let okay = true
+				for (let index = 0; index < row[0].length; index += 1) {
+					if (words[start + index] !== row[0][index]) {
+						okay = false
+						break
+					}
+				}
+				if (!okay) {
+					continue
+				}
+				hit = row
+				break
+			}
+			if (!hit) {
+				out.push(words[start])
+				start += 1
+				continue
+			}
+			out.push(hit[1])
+			start += hit[0].length
+		}
+		return out.join(" ")
+	}
+
+	normalize(text) {
+		return this.expandAliases(this.basicWords(text))
 	}
 
 	encodeText(text) {
@@ -454,10 +591,33 @@ class Model {
 		return rows.slice(0, 2).map(row => row[1])
 	}
 
+	inputState(text) {
+		const ids = this.encodeText(text)
+		if (!ids.length) {
+			return {cache: null, ids, text}
+		}
+		if (text === this.cache.text) {
+			return this.cache
+		}
+		const prev = this.cache
+		if (prev.text && text.startsWith(prev.text) && prev.cache) {
+			let cache = prev.cache
+			let next = prev.ids.slice()
+			for (const id of ids.slice(next.length)) {
+				cache = this.forwardToken(id, cache).cache
+				next.push(id)
+			}
+			this.cache = {cache, ids: next, text}
+			return this.cache
+		}
+		const state = this.forwardPrefix(ids)
+		this.cache = {cache: state.cache, ids, text}
+		return this.cache
+	}
+
 	decodeBeam(text, width) {
-		const prefix = this.encodeText(text)
-		prefix.push(this.tok.sep_id)
-		const state = this.forwardPrefix(prefix)
+		const prefix = this.inputState(text)
+		const state = this.forwardToken(this.tok.sep_id, prefix.cache)
 		let beams = [{
 			cache: state.cache,
 			logits: state.logits,
@@ -513,16 +673,16 @@ class Model {
 
 	nearestRooms(text, fn) {
 		let rows = []
-		for (const room of this.rooms) {
-			rows.push([fn.call(this, text, room), room])
+		for (const [room, key] of this.roomRows) {
+			rows.push([fn.call(this, text, key), room])
 		}
 		return this.topRoomRows(rows)
 	}
 
 	bestRooms(text, fn) {
 		let rows = []
-		for (const room of this.rooms) {
-			rows.push([fn.call(this, text, room), room])
+		for (const [room, key] of this.roomRows) {
+			rows.push([fn.call(this, text, key), room])
 		}
 		return this.topRoomRows(rows, true)
 	}
@@ -530,7 +690,7 @@ class Model {
 	histRooms(text) {
 		const left = this.charHist(text)
 		let rows = []
-		for (const [room, right] of this.roomHists) {
+		for (const [room, _, right] of this.roomRows) {
 			rows.push([this.histScore(left, right), room])
 		}
 		return this.topRoomRows(rows, true)
@@ -650,9 +810,13 @@ class Model {
 		if (!input) {
 			return []
 		}
+		if (this.solveCache.has(input)) {
+			return this.solveCache.get(input)
+		}
 		let out = []
-		if (this.roomSet.has(input)) {
-			out.push(input)
+		const exact = this.roomKeys[input]
+		if (exact) {
+			out.push(...exact)
 		}
 		out.push(...this.nearestRooms(input, this.levenshtein))
 		out.push(...this.nearestRooms(input, this.damerau))
@@ -661,7 +825,9 @@ class Model {
 		try {
 			out.push(...this.decodeBeam(input, 2))
 		} catch (_) {}
-		return Array.from(new Set(out)).sort((a, b) => a.localeCompare(b))
+		out = Array.from(new Set(out)).sort((a, b) => a.localeCompare(b))
+		this.solveCache.set(input, out)
+		return out
 	}
 }
 
@@ -674,15 +840,14 @@ async function boot() {
 		const a = await fetch("./assets.json")
 		const b = await fetch("./weights.bin")
 		if (!a.ok || !b.ok) {
-			throw new Error("Missing assets.json or weights.bin.")
+			return
 		}
 		const assets = await a.json()
 		const buf = await b.arrayBuffer()
 		model = new Model(assets, buf)
-		ui.run.disabled = false
 		ui.input.focus()
-	} catch (err) {
-		render([String(err.message || err)])
+		update()
+	} catch (_) {
 	}
 }
 
@@ -697,17 +862,20 @@ function render(rows) {
 }
 
 
-ui.form.addEventListener("submit", event => {
-	event.preventDefault()
+function update() {
 	if (!model) {
+		render([])
 		return
 	}
 	try {
 		render(model.solve(ui.input.value))
-	} catch (err) {
-		render([String(err.message || err)])
+	} catch (_) {
+		render([])
 	}
-})
+}
+
+
+ui.input.addEventListener("input", update)
 
 
 boot()

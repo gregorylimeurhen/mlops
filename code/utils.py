@@ -381,6 +381,20 @@ def load_room_lookup(root):
 	}
 
 
+def load_aliases(root):
+	path = pathlib.Path(root) / "data" / "aliases.tsv"
+	rows = path.read_text(encoding="utf-8-sig").splitlines()
+	pairs = []
+	for index, row in enumerate(rows):
+		if not row:
+			continue
+		if not index and row == "source\ttarget":
+			continue
+		source, target = row.split("\t")
+		pairs.append((normalize(source), normalize(target)))
+	return pairs
+
+
 def build_room_trie(rooms, tokenizer):
 	root = {"allowed": (), "children": {}}
 	for room in sorted(rooms):
