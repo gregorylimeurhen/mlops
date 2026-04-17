@@ -12,9 +12,9 @@ depth = 2
 tolerance = 100
 
 [test]
-run = "5327"
+run = 5327
 
 [deploy]
-api = "https://api.netlify.com/api/v1"
-site = "sutd404"
+api = "https://api.vercel.com"
+project = "sutd404"
 team = "gregorylimeurhen"

@@ -9,7 +9,8 @@ def main():
 	cfg = utils.load_config(dir_, "test")
 	dev = utils.device_for()
 	print(dev.type)
-	train_run_dir = dir_ / "runs" / str(cfg["run"]).strip() / "train"
+	run = cfg["run"]
+	train_run_dir = dir_ / "runs" / f"{run}" / "train"
 	run_dir = train_run_dir.parent / "test"
 	results_dir = run_dir / "results"
 	results_dir.mkdir(parents=True, exist_ok=True)

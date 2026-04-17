@@ -19,9 +19,14 @@ PAD_TOKEN = "<pad>"
 SEP_TOKEN = "<sep>"
 EOS_TOKEN = "<eos>"
 UNK_TOKEN = "<unk>"
-BASELINE_NAMES = ["identity", "levenshtein", "damerau_levenshtein"]
-BASELINE_NAMES += ["longest_common_subsequence"]
-BASELINE_NAMES += ["character_histogram_intersection", "ours"]
+BASELINE_NAMES = [
+	"identity",
+	"levenshtein",
+	"damerau_levenshtein",
+	"longest_common_subsequence",
+	"character_histogram_intersection",
+	"ours"
+]
 
 
 class Tokenizer:

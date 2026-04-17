@@ -1,8 +1,6 @@
 import argparse
-import dotenv
-import export
+import hashlib
 import json
-import os
 import pathlib
 import shutil
 import tempfile
@@ -10,20 +8,36 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-import zipfile
+import torch
+import utils
 
 
-API = "https://api.netlify.com/api/v1"
-DEF_SITE = "sutdoko"
-DEF_TEAM = "gregorylimeurhen"
+class ApiError(RuntimeError):
+	def __init__(self, code, method, url, text):
+		super().__init__(f"{method} {url} failed: {text}")
+		self.code = code
 
 
 def load_token(root):
-	dotenv.load_dotenv(root / ".env")
-	tok = os.getenv("NETLIFY_PERSONAL_ACCESS_TOKEN")
-	if tok:
-		return tok
-	raise RuntimeError("missing NETLIFY_PERSONAL_ACCESS_TOKEN in code/.env")
+	path = root / ".env"
+	if not path.exists():
+		raise RuntimeError("missing VERCEL_ACCESS_TOKEN in code/.env")
+	for line in path.read_text().splitlines():
+		key, sep, value = line.partition("=")
+		if key != "VERCEL_ACCESS_TOKEN" or not sep:
+			continue
+		value = value.strip().strip("\"'")
+		if value:
+			return value
+	raise RuntimeError("missing VERCEL_ACCESS_TOKEN in code/.env")
+
+
+def load_deploy(root):
+	cfg = utils.load_config(root, "deploy")
+	api = str(cfg["api"]).rstrip("/")
+	project = str(cfg["project"]).strip()
+	team = str(cfg["team"]).strip()
+	return {"api": api, "project": project, "team": team}
 
 
 def err_text(err):
@@ -46,55 +60,108 @@ def err_text(err):
 	return json.dumps(obj)
 
 
-def req(method, url, tok, body=None, ctype=None):
-	headers = {"Authorization": f"Bearer {tok}"}
-	if ctype:
-		headers["Content-Type"] = ctype
-	r = urllib.request.Request(url, body, headers, method=method)
-	try:
-		with urllib.request.urlopen(r, timeout=60) as res:
-			data = res.read()
-			if not data:
-				return None
-			return json.loads(data)
-	except urllib.error.HTTPError as err:
-		text = err_text(err)
-		msg = f"{method} {url} failed: {text}"
-		raise RuntimeError(msg) from None
-
-
 def latest_model(root):
 	pat = root / "runs"
-	paths = sorted(pat.glob("*/train/model.pt"), key=lambda p: p.stat().st_mtime)
+	key = lambda path: path.stat().st_mtime
+	paths = sorted(pat.glob("*/train/model.pt"), key=key)
 	if paths:
 		return paths[-1]
 	raise RuntimeError("no code/runs/*/train/model.pt found")
 
 
-def site_url(team):
-	return f"{API}/{team}/sites"
+def api_url(cfg, path, query=None):
+	url = f"{cfg['api']}{path}"
+	if not query:
+		return url
+	qs = urllib.parse.urlencode(query)
+	return f"{url}?{qs}"
 
 
-def get_site(team, site, tok):
-	url = site_url(team)
-	sites = req("GET", url, tok)
-	for row in sites:
-		if row.get("name") == site:
-			return row
-	return None
+def scope(cfg):
+	team = cfg["team"]
+	if team:
+		return {"slug": team}
+	return {}
 
 
-def make_site(team, site, tok):
-	url = f"{API}/{team}/sites"
-	body = json.dumps({"name": site}).encode()
+def get_project(cfg, tok):
+	name = urllib.parse.quote(cfg["project"])
+	url = api_url(cfg, f"/v9/projects/{name}", scope(cfg))
+	return req("GET", url, tok)
+
+
+def make_project(cfg, tok):
+	url = api_url(cfg, "/v11/projects", scope(cfg))
+	body = json.dumps({"name": cfg["project"]}).encode()
 	return req("POST", url, tok, body, "application/json")
 
 
-def ensure_site(team, site, tok):
-	row = get_site(team, site, tok)
-	if row:
-		return row
-	return make_site(team, site, tok)
+def ensure_project(cfg, tok):
+	try:
+		return get_project(cfg, tok)
+	except ApiError as err:
+		if err.code != 404:
+			raise
+	try:
+		return make_project(cfg, tok)
+	except ApiError as err:
+		if err.code != 409:
+			raise
+	return get_project(cfg, tok)
+
+
+def dump_tensor(file, tensor, offset):
+	data = tensor.detach().cpu().float().contiguous()
+	blob = bytes(data.untyped_storage())
+	file.write(blob)
+	return {
+		"offset": offset,
+		"shape": list(data.shape),
+		"size": data.numel(),
+	}
+
+
+def export_model(model_path, out_dir):
+	dev = torch.device("cpu")
+	model_path = pathlib.Path(model_path).resolve()
+	snap_path = model_path.with_name("snapshot.zip")
+	if not snap_path.exists():
+		raise FileNotFoundError(str(snap_path))
+	with utils.loaded_snapshot(snap_path) as (snap_root, ev):
+		model, tok, rooms = ev.load_checkpoint(model_path, dev)
+		room_map = ev.load_room_lookup(snap_root)
+		seed = ev.load_seed(snap_root)
+		trie = ev.build_room_trie(rooms, tok)
+	out_dir = pathlib.Path(out_dir).resolve()
+	out_dir.mkdir(parents=True, exist_ok=True)
+	offset = 0
+	meta = {}
+	path = out_dir / "weights.bin"
+	with path.open("wb") as file:
+		for name, tensor in model.state_dict().items():
+			info = dump_tensor(file, tensor, offset)
+			meta[name] = info
+			offset += info["size"] * 4
+	config = {
+		"depth": model.config.depth,
+		"sequence_len": model.config.sequence_len,
+		"vocab_size": model.config.vocab_size,
+		"n_head": model.config.n_head,
+		"n_embd": model.config.n_embd,
+	}
+	items = sorted(room_map.items())
+	assets = {
+		"config": config,
+		"rooms": sorted(rooms),
+		"room_lookup": {key: value for key, value in items},
+		"seed": seed,
+		"tensors": meta,
+		"trie": trie,
+		"tokenizer": tok.to_dict(),
+	}
+	text = json.dumps(assets, indent=2) + "\n"
+	(out_dir / "assets.json").write_text(text)
+	return out_dir
 
 
 def build_dir(root, model):
@@ -102,83 +169,116 @@ def build_dir(root, model):
 	tmp = tempfile.TemporaryDirectory()
 	out = pathlib.Path(tmp.name)
 	shutil.copytree(app, out, dirs_exist_ok=True)
-	export.export_model(model, out)
+	export_model(model, out)
 	return tmp, out
 
 
-def zip_path(src, dst):
-	with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zf:
-		for path in sorted(src.rglob("*")):
-			if path.is_dir():
-				continue
-			name = path.relative_to(src)
-			zf.write(path, name)
-	return dst
+def upload_file(cfg, tok, data):
+	sha = hashlib.sha1(data).hexdigest()
+	url = api_url(cfg, "/v2/files", scope(cfg))
+	headers = {"x-vercel-digest": sha}
+	req("POST", url, tok, data, "application/octet-stream", headers)
+	return sha
 
 
-def deploy_url(site_id, title):
-	query = {"production": "true", "title": title}
-	qs = urllib.parse.urlencode(query)
-	return f"{API}/sites/{site_id}/deploys?{qs}"
+def req(method, url, tok, body=None, ctype=None, extra=None):
+	headers = {"Authorization": f"Bearer {tok}"}
+	if ctype:
+		headers["Content-Type"] = ctype
+	if extra:
+		headers.update(extra)
+	req_ = urllib.request.Request(url, body, headers, method=method)
+	try:
+		with urllib.request.urlopen(req_, timeout=60) as res:
+			data = res.read()
+			if not data:
+				return None
+			return json.loads(data)
+	except urllib.error.HTTPError as err:
+		text = err_text(err)
+		raise ApiError(err.code, method, url, text) from None
 
 
-def create_deploy(site_id, title, zip_file, tok):
-	url = deploy_url(site_id, title)
-	body = zip_file.read_bytes()
-	return req("POST", url, tok, body, "application/zip")
+def create_deploy(cfg, tok, root):
+	files = []
+	for path in sorted(root.rglob("*")):
+		if path.is_dir():
+			continue
+		data = path.read_bytes()
+		item = {
+			"file": path.relative_to(root).as_posix(),
+			"sha": upload_file(cfg, tok, data),
+			"size": len(data),
+		}
+		files.append(item)
+	body = {
+		"files": files,
+		"name": cfg["project"],
+		"project": cfg["project"],
+		"projectSettings": {"framework": None},
+		"target": "production",
+	}
+	query = scope(cfg)
+	query["skipAutoDetectionConfirmation"] = "1"
+	url = api_url(cfg, "/v13/deployments", query)
+	body = json.dumps(body).encode()
+	return req("POST", url, tok, body, "application/json")
 
 
-def get_deploy(site_id, dep_id, tok):
-	url = f"{API}/sites/{site_id}/deploys/{dep_id}"
+def get_deploy(cfg, dep_id, tok):
+	path = urllib.parse.quote(dep_id)
+	url = api_url(cfg, f"/v13/deployments/{path}", scope(cfg))
 	return req("GET", url, tok)
 
 
-def wait_ready(site_id, dep_id, tok):
+def wait_ready(cfg, dep_id, tok):
 	while True:
-		row = get_deploy(site_id, dep_id, tok)
-		state = row.get("state", "")
-		if state == "ready":
+		row = get_deploy(cfg, dep_id, tok)
+		state = row.get("readyState") or row.get("status") or ""
+		if state == "READY":
 			return row
-		if state in {"error", "failed"}:
-			msg = row.get("error_message") or "deploy failed"
+		if state in {"ERROR", "CANCELED"}:
+			msg = row.get("errorMessage") or "deploy failed"
 			raise RuntimeError(msg)
 		time.sleep(1)
 
 
-def parse_args():
-	p = argparse.ArgumentParser()
-	root = pathlib.Path(__file__).resolve().parent
+def full_url(host):
+	if host.startswith("http://") or host.startswith("https://"):
+		return host
+	return f"https://{host}"
+
+
+def parse_args(root):
+	parser = argparse.ArgumentParser()
 	model = latest_model(root)
-	p.add_argument("model", nargs="?", default=str(model))
-	p.add_argument("--site", default=DEF_SITE)
-	p.add_argument("--team", default=DEF_TEAM)
-	return p.parse_args()
+	parser.add_argument("model", nargs="?", default=str(model))
+	return parser.parse_args()
 
 
 def main():
-	args = parse_args()
 	root = pathlib.Path(__file__).resolve().parent
+	args = parse_args(root)
+	cfg = load_deploy(root)
 	tok = load_token(root)
 	model = pathlib.Path(args.model).resolve()
 	if not model.exists():
 		raise FileNotFoundError(str(model))
-	site = ensure_site(args.team, args.site, tok)
-	site_id = site["id"]
+	project = ensure_project(cfg, tok)
 	run = model.parent.parent.name
-	title = f"run {run}"
 	tmp, out = build_dir(root, model)
 	with tmp:
-		zip_file = pathlib.Path(tmp.name).with_suffix(".zip")
-		zip_path(out, zip_file)
-		dep = create_deploy(site_id, title, zip_file, tok)
-		dep = wait_ready(site_id, dep["id"], tok)
-	url = dep.get("ssl_url") or dep.get("url") or site.get("ssl_url")
+		dep = create_deploy(cfg, tok, out)
+		dep = wait_ready(cfg, dep["id"], tok)
+	url = dep.get("aliasFinal") or dep.get("url")
+	url = full_url(url)
 	print(json.dumps({
 		"deploy_id": dep["id"],
 		"model": str(model),
 		"model_bytes": model.stat().st_size,
-		"site_id": site_id,
-		"site_name": site["name"],
+		"project_id": project["id"],
+		"project_name": project["name"],
+		"run": run,
 		"url": url,
 	}, indent=2))
 

@@ -7,40 +7,12 @@ const ui = {
 	input: document.getElementById("input"),
 	out: document.getElementById("out"),
 	run: document.getElementById("run"),
-	status: document.getElementById("status"),
 }
-
-
-class Rng {
-	constructor(seed) {
-		let x = seed >>> 0
-		x ||= 1
-		this.s = x
-	}
-
-	next() {
-		let x = this.s >>> 0
-		x ^= (x << 13) >>> 0
-		x ^= x >>> 17
-		x ^= (x << 5) >>> 0
-		x >>>= 0
-		this.s = x
-		return x / 4294967296
-	}
-
-	int(n) {
-		return Math.floor(this.next() * n)
-	}
-}
-
-
 class Model {
 	constructor(assets, buf) {
 		this.cfg = assets.config
 		this.rooms = assets.rooms
-		this.roomMap = assets.room_lookup
 		this.roomSet = new Set(this.rooms)
-		this.seed = assets.seed
 		this.tok = assets.tokenizer
 		this.trie = assets.trie
 		this.vocab = this.tok.vocab
@@ -451,43 +423,117 @@ class Model {
 		return {cache: next, logits}
 	}
 
-	pickGreedyId(logits, allowed, rng) {
+	allowedLogps(logits, allowed) {
 		let best = -Infinity
-		let ids = []
 		for (const id of allowed) {
 			const value = logits[id]
 			if (value > best) {
 				best = value
-				ids = [id]
-				continue
-			}
-			if (value === best) {
-				ids.push(id)
 			}
 		}
-		return ids[rng.int(ids.length)]
+		let total = 0
+		let rows = []
+		for (const id of allowed) {
+			const value = Math.exp(logits[id] - best)
+			rows.push([id, value])
+			total += value
+		}
+		for (const row of rows) {
+			row[1] = Math.log(row[1] / total)
+		}
+		return rows
 	}
 
-	decode(text, seed, pickId) {
+	topRoomRows(rows, rev) {
+		rows.sort((left, right) => {
+			if (left[0] !== right[0]) {
+				return rev ? right[0] - left[0] : left[0] - right[0]
+			}
+			return left[1].localeCompare(right[1])
+		})
+		return rows.slice(0, 2).map(row => row[1])
+	}
+
+	decodeBeam(text, width) {
 		const prefix = this.encodeText(text)
 		prefix.push(this.tok.sep_id)
-		let node = this.trie
-		let room = []
-		let state = this.forwardPrefix(prefix)
-		const rng = new Rng(seed)
-		while (true) {
-			const id = pickId.call(this, state.logits, node.allowed, rng)
-			if (id === this.tok.eos_id) {
-				return this.decodeText(room)
+		const state = this.forwardPrefix(prefix)
+		let beams = [{
+			cache: state.cache,
+			logits: state.logits,
+			node: this.trie,
+			room: [],
+			score: 0,
+		}]
+		let done = []
+		while (beams.length) {
+			let next = []
+			for (const beam of beams) {
+				const rows = this.allowedLogps(beam.logits, beam.node.allowed)
+				for (const [id, logp] of rows) {
+					const score = beam.score + logp
+					if (id === this.tok.eos_id) {
+						const text = this.decodeText(beam.room)
+						done.push([score, text])
+						continue
+					}
+					const room = beam.room.concat(id)
+					next.push({id, room, score, src: beam})
+				}
 			}
-			room.push(id)
-			node = node.children[id]
-			state = this.forwardToken(id, state.cache)
+			next.sort((left, right) => {
+				if (left.score !== right.score) {
+					return right.score - left.score
+				}
+				const a = this.decodeText(left.room)
+				const b = this.decodeText(right.room)
+				return a.localeCompare(b)
+			})
+			next = next.slice(0, width)
+			beams = next.map(row => {
+				const src = row.src
+				const state = this.forwardToken(row.id, src.cache)
+				return {
+					cache: state.cache,
+					logits: state.logits,
+					node: src.node.children[row.id],
+					room: row.room,
+					score: row.score,
+				}
+			})
 		}
+		done.sort((left, right) => {
+			if (left[0] !== right[0]) {
+				return right[0] - left[0]
+			}
+			return left[1].localeCompare(right[1])
+		})
+		return done.slice(0, 2).map(row => row[1])
 	}
 
-	predictRoom(text, seed) {
-		return this.decode(text, seed, this.pickGreedyId)
+	nearestRooms(text, fn) {
+		let rows = []
+		for (const room of this.rooms) {
+			rows.push([fn.call(this, text, room), room])
+		}
+		return this.topRoomRows(rows)
+	}
+
+	bestRooms(text, fn) {
+		let rows = []
+		for (const room of this.rooms) {
+			rows.push([fn.call(this, text, room), room])
+		}
+		return this.topRoomRows(rows, true)
+	}
+
+	histRooms(text) {
+		const left = this.charHist(text)
+		let rows = []
+		for (const [room, right] of this.roomHists) {
+			rows.push([this.histScore(left, right), room])
+		}
+		return this.topRoomRows(rows, true)
 	}
 
 	levenshtein(left, right, limit) {
@@ -591,44 +637,6 @@ class Model {
 		return prev[prev.length - 1]
 	}
 
-	nearestAddress(text, seed, fn) {
-		let best = null
-		let rooms = []
-		const rng = new Rng(seed)
-		for (const room of this.rooms) {
-			const dist = fn.call(this, text, room, best)
-			if (best == null || dist < best) {
-				best = dist
-				rooms = [room]
-				continue
-			}
-			if (dist === best) {
-				rooms.push(room)
-			}
-		}
-		const room = rooms[rng.int(rooms.length)]
-		return this.roomMap[room]
-	}
-
-	bestAddress(text, seed, fn) {
-		let best = null
-		let rooms = []
-		const rng = new Rng(seed)
-		for (const room of this.rooms) {
-			const score = fn.call(this, text, room, best)
-			if (best == null || score > best) {
-				best = score
-				rooms = [room]
-				continue
-			}
-			if (score === best) {
-				rooms.push(room)
-			}
-		}
-		const room = rooms[rng.int(rooms.length)]
-		return this.roomMap[room]
-	}
-
 	histScore(left, right) {
 		let score = 0
 		for (const char of Object.keys(left)) {
@@ -637,41 +645,18 @@ class Model {
 		return score
 	}
 
-	histAddress(text, seed) {
-		const left = this.charHist(text)
-		let best = null
-		let rooms = []
-		const rng = new Rng(seed)
-		for (const [room, right] of this.roomHists) {
-			const score = this.histScore(left, right)
-			if (best == null || score > best) {
-				best = score
-				rooms = [room]
-				continue
-			}
-			if (score === best) {
-				rooms.push(room)
-			}
-		}
-		const room = rooms[rng.int(rooms.length)]
-		return this.roomMap[room]
-	}
-
 	solve(text) {
 		const input = this.normalize(text)
-		const out = {input}
-		out.identity = this.roomMap[input] || ""
-		out.levenshtein = this.nearestAddress(input, this.seed, this.levenshtein)
-		out.damerau_levenshtein = this.nearestAddress(input, this.seed, this.damerau)
-		const lcs = this.bestAddress(input, this.seed, this.lcs)
-		out.longest_common_subsequence = lcs
-		out.character_histogram_intersection = this.histAddress(input, this.seed)
-		const exact = this.roomSet.has(input)
-		const room = exact ? input : this.predictRoom(input, this.seed)
-		out.ours_room = room
-		out.ours = this.roomMap[room] || ""
-		out.final = out.ours
-		return out
+		let out = []
+		if (this.roomSet.has(input)) {
+			out.push(input)
+		}
+		out.push(...this.nearestRooms(input, this.levenshtein))
+		out.push(...this.nearestRooms(input, this.damerau))
+		out.push(...this.bestRooms(input, this.lcs))
+		out.push(...this.histRooms(input))
+		out.push(...this.decodeBeam(input, 2))
+		return Array.from(new Set(out)).sort((a, b) => a.localeCompare(b))
 	}
 }
 
@@ -684,22 +669,26 @@ async function boot() {
 		const a = await fetch("./assets.json")
 		const b = await fetch("./weights.bin")
 		if (!a.ok || !b.ok) {
-			throw new Error("Run code/export.py to create assets.json and weights.bin.")
+			throw new Error("Missing assets.json or weights.bin.")
 		}
 		const assets = await a.json()
 		const buf = await b.arrayBuffer()
 		model = new Model(assets, buf)
 		ui.run.disabled = false
-		ui.status.textContent = "Ready."
 		ui.input.focus()
 	} catch (err) {
-		ui.status.textContent = String(err.message || err)
+		render([String(err.message || err)])
 	}
 }
 
 
-function render(result) {
-	ui.out.textContent = JSON.stringify(result, null, 2)
+function render(rows) {
+	ui.out.replaceChildren()
+	for (const row of rows) {
+		const li = document.createElement("li")
+		li.textContent = row
+		ui.out.append(li)
+	}
 }
 
 
@@ -708,10 +697,7 @@ ui.form.addEventListener("submit", event => {
 	if (!model) {
 		return
 	}
-	const start = performance.now()
-	const result = model.solve(ui.input.value)
-	result.latency_ms = performance.now() - start
-	render(result)
+	render(model.solve(ui.input.value))
 })
 
 

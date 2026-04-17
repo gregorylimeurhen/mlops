@@ -109,38 +109,20 @@ All keys have equal padding between them.
 	\caption{$\textsc{Corrupt}(\bm{x})$}
 	\begin{algorithmic}
 		\Require $\bm{x}\in V^{*}$
-		% \State $T\gets\{\bm{u}\bm{v}b\bm{w}\bm{z}=\bm{x}\}$
-		% \State ${
-		% 	T
-		% 	\gets
-		% 	\{
-		% 		\bm{u}\bm{v}b\bm{w}\bm{z}\in T
-		% 		\mid
-		% 		\bm{u}\in V^{*}B\cup\{\epsilon\},\,
-		% 		\bm{z}\in BV^{*}\cup\{\epsilon\}
-		% 	\}
-		% }$
-		% \State ${
-		% 	T
-		% 	\gets
-		% 	\{
-		% 		\bm{u}\bm{v}b\bm{w}\bm{z}\in T
-		% 		\mid
-		% 		\bm{v},\bm{w}\in(V\setminus B)^{+},\,
-		% 		b\in B
-		% 	\}
-		% }$
-		\State $(L,R)\gets(\{\bm{\epsilon}\}\cup V^{*}B,\{\bm{\epsilon}\}\cup BV^{*})$
-		\State $F\gets(V\setminus B)^{+}$
+		\State ${
+			(T_{L},T_{M},T_{R})
+			\gets
+			(\{\bm{\epsilon}\}\cup V^{*}B,(V\setminus B)^{+},\{\bm{\epsilon}\}\cup BV^{*})
+		}$
 		\State ${
 			T
 			\gets
 			\{
 				\bm{u}\bm{w}b\bm{v}\bm{z}
 				\mid
-				\bm{u}\in L,\,
-				\bm{z}\in R,\,
-				\bm{v},\bm{w}\in F,\,
+				\bm{u}\in T_{L},\,
+				\bm{v},\bm{w}\in T_{M},\,
+				\bm{z}\in T_{R},\,
 				b\in B,\,
 				\bm{x}=\bm{u}\bm{v}b\bm{w}\bm{z}
 			\}
@@ -286,5 +268,10 @@ Keeping the hardware and rest of the system fixed, we evaluated four (candidate)
 evaluating each resulting system on the test set using accuracy and mean latency.
 Accuracy was measured using the fraction of test inputs for which final address equals gold address.
 Mean latency was measured using the mean time taken to get an output from giving an input.
+
+\section{Deployment}
+
+We deployed SUTD 404 as web application served at \url{sutd404.netlify.app}
+using 
 
 \end{document}
