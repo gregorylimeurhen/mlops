@@ -1,71 +1,76 @@
-# mlops
+# sutd404
+
+Room-to-address lookup made easy!
+
+- **Web application**: [sutd404.vercel.app](https://sutd404.vercel.app).
+- **Training artefacts**: [hf.co/gregorylimeurhen/sutd404](https://hf.co/gregorylimeurhen/sutd404).
 
 ## Setup
 
 Follow these steps if you want to run our code locally.
 
 1. Clone repository. For example:
-	```bash
-	git clone https://github.com/gregorylimeurhen/sutd404
-	```
+```bash
+git clone https://github.com/gregorylimeurhen/sutd404
+```
 
 ### Web Application
 
 Follow these steps if you want to run our web application locally.
 
-1. Optionally, download and extract latest weights from [http://huggingface.co/gregorylimeurhen/sutd404](http://huggingface.co/gregorylimeurhen/sutd404) into `./experiments/runs/`.
+1. Optionally, download and extract latest weights from latest training artefact into `./experiments/runs/`.
 2. Optionally, run `./app/build.py`.
 3. Open `./app/index.html`. For example:
-	```bash
-	open ./app/index.html # MacOS
-	xdg-open ./app/index.html # Linux
-	```
+```bash
+# sutd404 $
+            open ./app/index.html # MacOS
+            xdg-open ./app/index.html # Linux
+```
 
 ### Experiments
 
 Follow these steps if you want to run our experiments locally.
 
 1. Rename `./experiments/.env.example` to `./experiments/.env`. For example:
-	```bash
-	mv ./experiments/.env.example ./experiments/.env
-	```
+```bash
+# sutd404 $
+            mv ./experiments/.env.example ./experiments/.env
+```
 2. Set `WANDB_API_KEY` in `./experiments/.env` to working [Weights & Biases (W&B)](http://wandb.ai) API key.
 3. Install packages in `./experiments/requirements.txt`. For example:
-	```bash
-	python3 -m pip install -r ./experiments/requirements.txt
-	```
+```bash
+# sutd404 $
+            python3 -m pip install -r ./experiments/requirements.txt
+```
 
 ## Structure
 
 ```
 .
-├── .gitignore
 ├── app
 │   ├── assets.json
-│   ├── build.py
-│   ├── deploy.py
-│   ├── favicon.jpeg
+│   ├── build.py                 # build script, entry
+│   ├── deploy.py                # deployment script, entry
 │   ├── index.css
-│   ├── index.html
+│   ├── index.html               # app markup, entry
 │   ├── index.js
-│   ├── search.svg
 │   ├── weights.bin
 │   └── worker.js
 ├── experiments
 │   ├── .env
 │   ├── .env.example
-│   ├── config.toml
+│   ├── config.toml              # pipeline configuration, entry
 │   ├── data
-│   │   ├── aliases.tsv
-│   │   ├── boundaries.txt
-│   │   ├── edges.tsv
-│   │   ├── layout.txt
-│   │   ├── n2a.tsv
-│   │   ├── neighbors.json
-│   │   ├── test.tsv
-│   │   ├── train.tsv
-│   │   └── val.tsv
-│   ├── preprocess.py
+│   │   ├── aliases.tsv          # room aliases
+│   │   ├── boundaries.txt       # keyboard boundary list
+│   │   ├── edges.tsv            # room-to-address relations
+│   │   ├── layout.txt           # keyboard layout map
+│   │   ├── n2a.tsv              # room-to-address function
+│   │   ├── neighbors.json       # keyboard neighbour map
+│   │   ├── test.tsv             # testing dataset
+│   │   ├── train.tsv            # training dataset
+│   │   └── val.tsv              # validation dataset
+│   ├── preprocess.py            # preprocessing script
 │   ├── requirements.txt
 │   ├── runs
 │   │   └── <MMSS>
@@ -73,16 +78,19 @@ Follow these steps if you want to run our experiments locally.
 │   │       │   ├── results
 │   │       │   └── snapshot.zip
 │   │       └── train
-│   │           ├── latest.pt
-│   │           ├── model.pt
+│   │           ├── latest.pt    # latest weights
+│   │           ├── model.pt     # best weights
 │   │           ├── snapshot.zip
-│   │           └── wandb
-│   ├── test.py
-│   ├── train.py
+│   │           └── wandb        # training logs
+│   ├── test.py                  # testing script, entry
+│   ├── train.py                 # training script, entry
 │   └── utils.py
 ├── paper
 │   ├── bibliography.bib
-│   ├── extra.tex
+│   ├── main.pdf
+│   └── main.tex
+├── slides
+│   ├── bibliography.bib
 │   ├── main.pdf
 │   └── main.tex
 └── README.md
