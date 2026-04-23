@@ -87,7 +87,7 @@
 \begin{itemize}
 	\item Resources for this task remain limited.
 	\item Physical signs often require one to walk around.
-	\item Digital resources like the SUTD Assistive Maps (SAM) Telegram bot often fail on noisy input (e.g. strings with typos).
+	\item Digital resources like the SUTD Assistive Maps (SAM) Telegram bot \citep{sam} often fail on noisy input (e.g. strings with typos).
 \end{itemize}
 \end{frame}
 
@@ -120,7 +120,7 @@ $${\setlength{\arraycolsep}{2pt}
 }$$
 \end{definition}
 \begin{itemize}
-	\item We define a 60\% ANSI QWERTY en-US keyboard layout.
+	\item We define a 60\% ANSI QWERTY en-US keyboard layout \citep{qwerty}.
 \end{itemize}
 \end{frame}
 
@@ -263,7 +263,7 @@ Let $f:V^{*}\times R\to\R$ be a scorer.
 \end{align*}
 \end{definition}
 \begin{itemize}
-	\item Our denoiser is a Nanochat-parameterised, character-level transformer of depth 2 with decoding constrained to the character-level trie induced by $R$ \citep{nanochat}.
+	\item Our denoiser is a Nanochat-parameterised \citep{nanochat}, character-level transformer of depth 2 with decoding constrained to the character-level trie induced by $R$.
 	\begin{itemize}
 		\item Character-level tokenisation: As room strings/typos are often short/character-level.
 		\item Trie-constrained decoding: To efficiently avoid room hallucination.
@@ -377,9 +377,16 @@ $$
 \end{frame}
 
 \begin{frame}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.8\linewidth]{app.png}
+	\caption{Web application.}
+\end{figure}
+\end{frame}
 
+\begin{frame}
 \begin{itemize}
-	\item To further improve the user experience by making the application more efficient and responsive, we implemented:
+	\item To further improve user experience by making our web application more efficient and responsive, we implemented:
 	\begin{itemize}
 		\item \textbf{Incremental prediction.} We predict during typing rather than waiting for final submission.
 		\item \textbf{Prefix caching.} We KV-cache previously computed prefix states and only process newly appended characters.
@@ -391,6 +398,11 @@ $$
 \end{frame}
 
 \begin{frame}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.4\linewidth]{sam.png}
+	\caption{SAM.}
+\end{figure}
 \begin{itemize}
 	\item We evaluated our system against SAM.
 	\item We measured accuracy on a held-out set of $10$ inputs sampled from our test set.
