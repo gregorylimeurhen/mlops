@@ -1,6 +1,6 @@
 # sutd404
 
-Room-to-address lookup made easy!
+*Denoising language models for room address lookup.*
 
 - **Web application**: [sutd404.vercel.app](https://sutd404.vercel.app).
 - **Training artefacts**: [hf.co/gregorylimeurhen/sutd404](https://hf.co/gregorylimeurhen/sutd404).
@@ -37,7 +37,7 @@ Follow these steps if you want to run our experiments locally.
 # sutd404 $
             pip install -r ./experiments/requirements.txt
 ```
-4. Run
+4. Run pipeline. For example:
 ```bash
 # sutd404 $
             ./experiments/run.sh
