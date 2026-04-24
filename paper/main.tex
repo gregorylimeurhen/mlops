@@ -90,9 +90,8 @@ Visit
 for our code repository, and
 \href{https://sutd404.vercel.app}{sutd404.vercel.app}
 for our web application.
-We trained on a T4 GPU for approximately 1 hour.
 
-\clearpage
+\newpage
 
 \section{Methodology}
 
@@ -286,6 +285,7 @@ On each epoch, we maintain the latest weights (i.e. the weights for that epoch) 
 We use early stopping to avoid spending compute after validation loss plateaus.
 We log training losses, validation losses, and gradient norms to monitor fitting progress and stability.
 We also log model answers and scores for convenient analysis.
+Our model was trained on 1 T4 GPU hour.
 
 \begin{definition}[Lookup]
 $$
@@ -331,6 +331,8 @@ Then, the algorithm looks up the address of the room.
 Finally, the algorithm returns the address.
 
 \newpage
+
+\section{Experimentation}
 
 We conducted experiments for empirical validation of our denoiser and system.
 Accuracy was measured as the percentage of test inputs for which the final predicted address equalled the gold address.
@@ -561,8 +563,14 @@ Our results suggest that SAM can be effective on mildly corrupted inputs with st
 We conclude that SAM can be robust to limited orthographic variation,
 but can also fail to generalise beyond surface-form similarity.
 Our system convincingly outperformed SAM, achieving complete recovery.
-Overall, we believe these results demonstrate strong promise
-and provide practical foundations for reliable campus assistance.
+
+\section{Conclusion}
+
+We introduced SUTD404,
+a digital resource for room address lookup,
+to address the limitations of existing systems.
+Overall, we believe the experimental results demonstrate the strong promise of SUTD404
+and provide practical foundations for building more reliable campus assistance systems.
 
 \section{Appendix}
 
