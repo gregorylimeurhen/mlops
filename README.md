@@ -1,8 +1,6 @@
-# sutd404
+# SUTD404: Denoising Language Models for Room Address Lookup
 
-*Denoising language models for room address lookup.*
-
-- **Web application**: [sutd404.vercel.app](https://sutd404.vercel.app).
+**Web application**: [sutd404.vercel.app](https://sutd404.vercel.app).
 
 ## Setup
 
@@ -39,8 +37,7 @@ Follow these steps if you want to run our experiments locally.
             pip install -r requirements.txt
 ```
 4. Install [torch](https://pytorch.org/get-started/locally).
-5. 
-6. Run pipeline. For example:
+5. Run pipeline. For example:
 ```bash
 # sutd404 $
             cd experiments
@@ -53,7 +50,7 @@ Follow these steps if you want to run our experiments locally.
 
 ```
 .
-├── app
+├── app/
 │   ├── assets.json
 │   ├── build.py                 # build script, entry
 │   ├── deploy.py                # deployment script, entry
@@ -62,11 +59,11 @@ Follow these steps if you want to run our experiments locally.
 │   ├── index.js
 │   ├── weights.bin
 │   └── worker.js
-├── experiments
+├── experiments/
 │   ├── .env
 │   ├── .env.example
 │   ├── config.toml              # pipeline configuration, entry
-│   ├── data
+│   ├── data/
 │   │   ├── aliases.tsv          # room aliases
 │   │   ├── boundaries.txt       # keyboard boundary list
 │   │   ├── edges.tsv            # room-to-address relations
@@ -78,24 +75,24 @@ Follow these steps if you want to run our experiments locally.
 │   │   └── val.tsv              # validation dataset
 │   ├── preprocess.py            # preprocessing script
 │   ├── requirements.txt
-│   ├── runs
-│   │   └── 5327
-│   │       ├── test
-│   │       │   ├── results
+│   ├── runs/
+│   │   └── 5327/
+│   │       ├── test/
+│   │       │   ├── results/
 │   │       │   └── snapshot.zip
-│   │       └── train
+│   │       └── train/
 │   │           ├── latest.pt    # latest weights
 │   │           ├── model.pt     # best weights
 │   │           ├── snapshot.zip
-│   │           └── wandb        # training logs
+│   │           └── wandb/       # training logs
 │   ├── test.py                  # testing script, entry
 │   ├── train.py                 # training script, entry
 │   └── utils.py
-├── paper
+├── paper/
 │   ├── bibliography.bib
 │   ├── main.pdf
 │   └── main.tex
-├── slides
+├── slides/
 │   ├── bibliography.bib
 │   ├── main.pdf
 │   └── main.tex
